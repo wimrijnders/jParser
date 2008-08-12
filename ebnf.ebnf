@@ -1,0 +1,2007 @@
+#######################################################################
+# $Id: ebnf.ebnf 28 2005-04-07 10:51:51Z wri $ 
+#
+# For reserved words#characters till now, view the language definition.
+#
+#######################################################################
+# Output in general:
+#
+# header
+# class declaration
+# {
+#    internal ParseBlock() routines
+#    internal helper routines
+#    state variables 
+#    function declarations
+# }
+#
+# global parser object
+# main()
+# member functions of parser class
+# Listing of final attribute tree
+# [end-output]
+#
+#######################################################################
+# Output from EBNF definitions:
+#									
+# Logically a list of functions with the following layout:
+#
+# header: BOOL Parse_(is)
+# {							
+#    Local declarations   : fconst
+#    pre-Action block
+#    Parsing block     : fbody
+#    post-Action block
+#    return TRUE;
+# }
+#
+#######################################################################
+# Precedence, highest to lowest:
+#    ( )   - overrides all
+#    [],{}
+#    '|'   - left to right
+#######################################################################
+# NOTES:
+# ======
+#
+# * Use of BUILD an BOOTSTRAP version numbers:
+#
+#   There is a subtle difference for the two version numbers I use for
+#   this file. One does not exclude the other, nor does it demand an
+#   update of the other. 
+#
+#   - BOOTSTRAP: If the language changes to such an extent that I had to use
+#     the bootstrapped version of the parser to make it work properly, I raise 
+#     this version number by one ( eg. a new keyword is added). In a sense, this
+#     statement is contradictory: how can you make the bootstrap if you don't
+#     have the bootstrapped version? Don't you just love bootstrapping?
+#
+#   - BUILD: this version number is incremented if I make an adjustment in the
+#     supporting code (eg. add extra functionality or solve a bug).
+#
+#   Having said all this, I usually don't bother with version numbers for
+#   minor changes.
+#
+#######################################################################
+
+#TEST: using language file ebnfdef.ebnf.
+
+language EBNF
+{
+noWS
+SetError      = 'Err' [+\-].
+SetWSOn       = 'skipWS'.  
+SetWSOff      = 'noWS'.
+SetCase       = 'matchCase' [+\-].
+switches      = SetError | SetWSOn | SetWSOff | SetCase.
+o_comment     = Err+ "#" { [\all~\r\n] } [\r\n].
+c_comment     = Err- "//" { [\all~\r\n] } [\r\n].
+comment       = o_comment | c_comment.
+ignore WS     = { switches | comment | [ \t\n\r] }.
+
+//Character definitions
+overridechar  = [\)\-\~\\\]].               
+token any     = [\all]~overridechar.
+dec           = [0123456789].
+ExtChar       = [rnt] | overridechar | (dec dec dec) .
+anychar       = any | ( '\\' ExtChar). 
+
+//Definitions EBNF extensions 
+cstoggle      = '~'.
+csallchars    = '\\all'.
+csrange       = csallchars | ( anychar  ( '-'  anychar )?  ).
+
+#Following is a case where syntax with '?' fails
+#The old version is also buggy: if cstoggle present, csrange MUST be present
+#Charset       = skipWS "charset"  "(" noWS {  [ cstoggle ] csrange }  ")".  
+#Charset       = skipWS "charset"  "(" noWS {  cstoggle? csrange }  ")".  
+#Following works as we want it
+#Charset       = skipWS "charset"  "(" noWS {  csrange | (cstoggle csrange ) }  ")".  
+Charset       = ( noWS "[" {  csrange | (cstoggle csrange ) }  "]" ) |
+                            ( skipWS "charset"  "(" noWS {  csrange | (cstoggle csrange ) }  ")" ).
+
+tabext		  = 't'.
+crext		  = 'r'.
+lfext		  = 'n'.
+litoverride   = '\\'.
+litchar       = [\all~'"\r\n\\] 
+                | ( litoverride ( ['"\\] | tabext | crext | lfext ) ).     
+
+token LiteralBlock  = litchar+.      
+Literal       = ('\"' LiteralBlock '\"') | ("\'" LiteralBlock "\'").
+
+token Label   = [_a-zA-Z] [_a-zA-Z0-9]*.
+RightLabel    = Label.
+LeftLabel     = Label.
+
+skipWS
+
+//Basic WEBNF stuff
+basicstatement = Charset | Literal| RightLabel.
+BlockSeq       = Sequence.
+ConditionalSeq = Sequence.
+WhileSeq       = Sequence.
+
+RepPostfix     = [+*?].
+
+ExceptStatement= Statement.
+Statement      = ( basicstatement  | ( "(" BlockSeq ")" ) ) noWS ( RepPostfix | ('~' skipWS ExceptStatement) )?.
+
+Alternative    = noWS '|'.
+AlternateSeq   = Statement  (Alternative  Statement)*.
+Sequence       = ( AlternateSeq | ( "{" WhileSeq "}" ) )+.
+
+entr_ypoint    = 'entry'.
+mod_ignore		= 'ignore'.
+mod_token		= 'token'.
+linemodifiers  = entr_ypoint|mod_ignore|mod_token.
+Line           = linemodifiers? LeftLabel Err- '=' Err+ Sequence '.' .
+
+#
+#The actual language definition
+#
+
+languagename   = Label.
+parentname     = Label.
+definition     = "definition".
+implementation = "implementation".
+languageheader = "language" (definition | implementation)? languagename
+                 ( ( "extends" parentname )?
+                   ( "from" ( "binary" | "text")? )? //default: text
+                   ( "to"   ( "binary" | "text")? )? //default: text
+                 )?.
+languagebody   = '{' { State | Actionblock | Function | Line } '}'.  //The actual language def
+
+languageblock  = languageheader languagebody.
+
+usingfile      = noWS [a-zA-Z0-9_]+ ( [.] { [a-zA-Z0-9_] } )?.
+languagefile   = Err- "using"  "language" "file" usingfile ".".
+includefile    = "using"  "include" "file" usingfile ".".
+
+#Entry point - note that there should not be more than one main-block
+entry File     = {languagefile|includefile}  languageblock {languagefile} main?  {languagefile}.
+
+#
+# Macro blocks (actually part of action blocks)
+#
+
+noWS
+TS             = [ \t]+.                #TabSpace
+macrochar      = [a-zA-Z0-9_].
+macroid        = macrochar+.
+varname        = macroid.
+realpathname   = macroid.
+var_start      = '['.
+var_end        = ']'.
+pathname       = realpathname 
+                | ( var_start (macro_currenttoken|varname) var_end ).	  
+                #NOTE: order important in second '\|'
+
+set_dot        = '!'.
+get_dot        = '.'.
+set_path       = set_dot pathname.
+get_path       = get_dot pathname.
+abs_path       = get_path | set_path.
+rel_path			= varname.
+macro_path     = abs_path | rel_path { get_path | set_path }.
+
+attrpoint      = macroid.
+macro_foreach  = 'foreach' TS attrpoint TS 'in' TS macro_path.
+macro_body     = 'body'.
+macro_forend   = 'end' noWS TS 'foreach'.
+
+macro_currenttoken = 'CurrentToken'.
+
+macro_start    = '$'.
+macro_end      = '$'.
+macro_block    = macro_start (
+                                        macro_foreach | 
+                                        macro_body|  
+                                        macro_forend | 
+                                        macro_currenttoken |
+                                        macro_path 
+                                ) macro_end.
+skipWS
+
+
+#
+#Action blocks:
+#
+ActionLabel    = Label.
+noWS
+#Note explicit removal of '0' in override chars - to catch any hex or oct
+blocklitchar   = [\all~"\r\n\\] | ( '\\' [\all~0] ).      
+blockstring    =  '\"' { blocklitchar } '\"'.
+
+#Order important in following
+blockchar      = comment | blockstring | [\all~{}$].  
+token code_block     = { ( '{' code_block '}' ) | blockchar | macro_block }.
+skipWS
+
+pre_indicator = "pre:". 
+post_indicator = "post:". 
+#token 
+pre_block  = pre_indicator  '{' noWS code_block '}'.
+#token 
+post_block = '{' noWS code_block '}'.
+
+Actionblock    = 'action' ActionLabel  (pre_block ( post_indicator post_block )? ) | post_block.
+
+#
+# Functions
+#
+
+funcchar       =  [_a-zA-Z0-9].
+token funcid   = noWS funcchar+.
+token reference= '&'.
+token pointer  = '*'.
+functype       = funcid ( pointer | reference )?.
+funcvar        = funcid.
+token funcname = funcid.
+returntype     = functype .
+funcparam      = functype funcvar.
+token paramlist = '(' ('void' | ( funcparam { ',' funcparam } ) )? ')'.
+funcheader     = returntype funcname  paramlist.
+Function       = 'function' funcheader '{' noWS code_block '}'.
+
+#
+# State and main
+#
+
+# Definitions state extended, to allow for proper definition of constructor
+token number   = Err- noWS ( '+' | '-' )? dec+.
+token type_state = "WCLabels" | "WCString" | "int" | "charset" | "bool".
+token member_state = Label.
+oldbool         = "TRUE" | "FALSE".
+token initvalue = number | oldbool | "true" | "false".
+member_var     = type_state member_state ( ('=' initvalue ) | ( '(' initvalue ')')  )?.
+block_state    = { member_var ';' }.
+State          = 'state'  '{' block_state '}' . 
+main           = 'int main(int argc, char *argv[])'  '{' noWS code_block '}' .
+
+
+///////////////////////////////////////////////////////////////
+// State Block
+///////////////////////////////////////////////////////////////
+
+state
+{
+   //Storage vars for parsed data
+   WCString gLastValue;                 //Last label parsed             
+   
+   bool     gSkipWS         = true;     //TRUE if whitespace should be parsed (ie. it is skipped) in parser output, 
+   bool     gDefaultWS      = true;     //FALSE if there is no whitespace in parser output
+   bool     gDefaultErr     = true;
+   bool     gDoErr          = true; 
+
+   bool     gDefaultCase    = true;     //TRUE if compares should be case-sensitive, else FALSE.
+   bool     gMatchCase      = true;             
+   
+   bool     gDoingLine;                 //True if parsing Line (see EBNF), False if parsing anything else (including WS)
+
+   //vars for parsing charsets
+   int		m_charsetCount;     		//Counter for class-level charsets
+   charset  tempcharset;
+   bool     m_bCharsetHasZero;          //TRUE if there's a '\0' in charset
+   bool     do_insert;
+
+   bool     gDoneStateBlock;            //TRUE if state block found
+   bool     gDoneMainBlock;             //TRUE if main block found
+   WCString gMainBlock(256);
+   int      m_BlockCount = 0;
+
+   WCLabels m_stateVarAcc(256);         //Collect buffer for state variables.
+
+   bool     m_bEntryPoint;
+
+   WCString m_macroblock;
+   WCString m_attrpoint;
+   int      m_nRootcnt;
+
+   bool m_bDoingDefinition;
+   bool m_bDoingImplementation;
+        
+        bool m_bIgnoreActive;
+        bool m_bTokenActive;
+
+        bool m_bUsesCurrentToken;
+
+        //Following var' are actually local to action AlternateSeq 
+        WCString AlternateSeq_thisValue;
+        int AlternateSeq_bLastWasLoop;
+        int AlternateSeq_bLastWSval;
+}
+
+
+///////////////////////////////////////////////////////////////
+// Action Blocks
+///////////////////////////////////////////////////////////////
+
+action SetWSOn {
+   if (!gDoingLine) gDefaultWS = true;
+   gSkipWS = true; 
+}
+
+
+action SetWSOff 
+{
+   if (!gDoingLine) gDefaultWS = false;
+   gSkipWS = false;   
+}
+
+
+action SetError 
+{
+   bool thisvalue = ($CurrentToken$ == "+");
+   
+   if (!gDoingLine) gDefaultErr = thisvalue;
+   gDoErr = thisvalue; 
+}
+
+
+action SetCase 
+{
+   bool thisvalue = ($CurrentToken$ == "+");
+   
+   if (!gDoingLine) 
+      gDefaultCase = thisvalue;
+
+   gMatchCase = thisvalue;
+
+   ParseError("Detected Case!",WARNING); 
+}
+
+
+action o_comment
+{
+        #ignore value entirely
+#	$CurrentToken$.empty();
+        setCurrentToken("");
+}
+
+
+action ExtChar
+{
+   static bool sbDidZeroWarning = false;
+
+   if ( 1 == $CurrentToken$.Length() ) {
+      //
+      //It must be a special override character - replace by proper char value
+      //    if necessary
+      //
+                switch ( *($CurrentToken$.GetBuf()) ) {
+                        case 'r': setCurrentToken('\r'); break;
+                        case 'n': setCurrentToken('\n'); break;
+                        case 't': setCurrentToken('\t'); break;
+
+                        //ignore all others (syntax checked out, so must be OK)
+                        default:  break;
+                }
+   }
+   else
+   if ( 3 == $CurrentToken$.Length() ) {
+      //
+      //It must be a decimal - try to convert
+      //
+      int returnval = atoi($CurrentToken$.GetBuf());
+      if (!returnval) {
+         //Check for zero
+         if (  $CurrentToken$ != WCString("000") ) {
+            return ParseError("Decimal number expected for Label ExtChar",ERROR);
+         }
+         else {
+            //it is really a zero - increment by 1 to avoid conflict with string terminator
+            ++returnval; 
+            m_bCharsetHasZero = true;
+
+            if (! sbDidZeroWarning ) {
+               ParseError("Remember: Zero replaced by \'\\1\' in Label ExtChar\n"
+                          "\t(This warning is shown only once)",NOTE); 
+               sbDidZeroWarning = true;
+            }
+         }
+      }              
+
+      //Replace string by decimal char
+#	  $CurrentToken$ = (char) returnval;
+                setCurrentToken( WCString((char) returnval) );
+   }
+   else {
+      ParseError("Number of correctly parsed chars should be 1 or 3 for Label ExtChar",WARNING); 
+   }
+}
+ 
+
+action cstoggle 
+{
+   do_insert = !do_insert;
+}
+
+
+action csallchars
+{
+   //Make a complete charset for action csrange to handle.
+   m_bCharsetHasZero = true;
+#   $CurrentToken$ = WCString( "\x01\xff" );
+   setCurrentToken( WCString( "\x01\xff" ) );
+}
+
+
+action csrange 
+{
+   unsigned char fromkar, tokar;
+
+   fromkar = *($CurrentToken$.GetBuf());
+   if ( $CurrentToken$.Length() == 2 ) {
+      tokar = *( $CurrentToken$.GetBuf() + 1 );
+   }
+   else {
+      tokar = fromkar;
+   }
+      
+   tempcharset.insert(fromkar,tokar,do_insert);
+}
+
+
+action Charset
+pre: 
+{
+   do_insert = true;
+   tempcharset.clear();
+   m_bCharsetHasZero = false;
+} 
+post: 
+{                    
+   //tempcharset contains the charset just parsed
+
+   //W18-3-98 charset stored in class def instead of locally in member functions
+   WCString charsetBody = tempcharset;
+   if ( m_bCharsetHasZero) {
+      charsetBody  << ", TRUE ";
+   }
+
+   WCString charsetName;
+
+   //Check if charset with given body alread defined
+   $foreach pCharset in .language.[gParserLanguage].charsets$
+   $body$
+      if ( pCharset->GetValue() == charsetBody ) {
+         //charset was defined
+         charsetName = pCharset->GetName();
+      }
+   $end foreach$
+
+        if ( 0 == charsetName.Length() ) {
+                //This charset does not exist yet
+                ++m_charsetCount;
+                charsetName = WCString("m_kCharset");
+                charsetName << m_charsetCount;
+                $!language![gParserLanguage]!charsets![charsetName]$.SetValue(charsetBody);
+        }
+
+   //Save as list
+   {
+           CAttributeNode &node = $!alternateAcc!list$.AddTail("funccall", "testCharset").AddTail("parameters", "");
+                //Add parameters for this call
+                node.AddTail(charsetName,"");
+                node.AddTail("newExceptCount","1");		//Except clause stored in value
+
+           if ( !gMatchCase ) {
+                        node.AddTail("FALSE","");
+                }
+  }
+
+   //Create a corresponding error code
+   WCString thisError("Input character sequence does not match expected format.");
+   SetError(thisError);
+}
+
+
+action LeftLabel 
+{      
+   WCString aString(80);
+
+   //If u got this far, you're parsing a line - Set some switches
+   gDoingLine = true;
+   gSkipWS    = gDefaultWS;
+   gDoErr     = gDefaultErr;
+   gMatchCase = gDefaultCase;
+
+        aString = $CurrentToken$;
+
+   //Check if label already defined
+   if ( $.language.[gParserLanguage].Labels.[aString]$.Exists() ) {
+      return ParseError(ERR18);
+        }
+
+   $!language![gParserLanguage]!Labels![aString]$;
+
+   //W20-3-97 - entry point
+   if ( m_bEntryPoint ) {
+      $!language![gParserLanguage]!Labels![aString]!entry$;
+        }
+
+   //5-9-98 - ignore modifier
+   if ( m_bIgnoreActive ) {
+      $!language![gParserLanguage]!Labels![aString]!ignore$;
+        }
+        
+   //5-9-98 - token modifier
+   if ( m_bTokenActive ) {
+      $!language![gParserLanguage]!Labels![aString]!token$;
+        }
+                
+   Block_Up(aString.GetBuf());
+   Tabs.Inc();
+
+   //W5-1-97 Clear the values on the attribute count stack
+   if ( $!alternatecount$.GetAttributes() ) {
+      $!alternatecount$.GetAttributes()->Clear();
+        }
+}
+
+
+action languagename
+{
+   //Remember the name given to this language
+   gParserLanguage = $CurrentToken$;
+}
+
+
+action usingfile
+{
+        #usingfile should now be in CurrentToken
+        WCString msg("Usingfile: " );
+        msg << $CurrentToken$;
+        ParseError(msg,NOTE);
+}
+
+action includefile
+{
+        #Remember filename to include 
+        #include files are technically independent of the language to be parsed,
+        #so they should NOT be stored as  part of the language specification
+
+        #usingfile should now be in CurrentToken
+        $!includefiles$.AddTail($CurrentToken$, "Include");
+}
+
+
+action languagefile 
+{
+        #usingfile should now be in CurrentToken
+        WCString noteString("Including file \'");
+        noteString << $CurrentToken$ << "\'";
+        ParseError(noteString, NOTE);
+        f.openPush($CurrentToken$);
+}
+
+
+action File
+pre: 
+{
+#CREATE
+#	$!settings!multiplefiles$;
+#	$!settings!nodefaultmain$;
+#	$!settings!headerfile$.SetValue("debug\\\\ebnftest.h");
+#	$!settings!bodyfile$.SetValue("debug\\\\ebnftest.cpp");
+#	$!settings!mainfile$.SetValue("debug\\\\ebnfmain.cpp");
+#END CREATE
+   //
+   //W4-2-97 Some global init shit
+   //
+   m_nRootcnt =0;          //For foreach-macro's
+
+   if ( $.foreachstack$.HasAttributes() ) {
+      ParseError("There are still attributes on the foreach-macro stack",WARNING);
+        }
+
+   //
+   //End global init shit
+   //
+} 
+post:   
+{
+   //Following will generate a Fatal Error if problem encountered
+   DoFinalCheck();
+
+   //Do some final processing before creating output
+   DoFinalProcessing();
+
+   $!settings!blockcount$.SetValue(m_BlockCount);
+}
+
+
+action tabext {
+        setCurrentToken("\t");
+}
+
+action crext {
+        setCurrentToken("\r");
+}
+
+action lfext {
+        setCurrentToken("\n");
+}
+
+action litoverride
+{
+        setCurrentToken("");
+}
+
+action Literal  
+{
+        WCString aString = $CurrentToken$;
+        WCString temp;
+   
+        if ( aString.Length() ==1 ) {
+                temp << "testChar";
+        }
+        else {
+                temp << "testMatch"; 
+        }
+
+   CAttributeNode &node = $!alternateAcc!list$.AddTail("funccall", temp).AddTail("parameters", "");
+        temp.empty();
+
+        //Add parameters for this call
+        if ( aString.Length() ==1 ) {
+                temp << "'" << MakeCChar(*aString.GetBuf() ) << "'";
+        }
+        else {
+                temp << "\"" << MakeCString(aString) << "\"";
+        }
+        node.AddTail(temp,"");
+
+        node.AddTail("newExceptCount","1");
+        if ( !gMatchCase ) {
+                node.AddTail("FALSE","");
+        }
+
+
+   //Create a corresponding error code
+   WCString thisError(40);
+   thisError << "Literal \'" << aString << "\' expected.";
+   SetError(thisError);
+}
+
+
+
+action RightLabel 
+{      
+        WCString aString = $CurrentToken$;
+
+   //W7-4-97 Remember this label for the final check on existence
+   $!language![gParserLanguage]!RightLabels![aString]$;
+
+   //Save as list
+   {
+                WCString name;
+                name << "Parse" << aString;
+
+                CAttributeNode &node = $!alternateAcc!list$.AddTail("funccall", name).AddTail("parameters", "");
+                node.AddTail("newExceptCount","1");
+   }
+
+   //Create a corresponding error code
+   WCString thisError(40);
+   thisError << "Input does not match definition of Label \'" << aString << "\'.";
+   SetError(thisError);
+
+   gLastValue = aString;
+}
+
+
+action Alternative 
+{
+  int alternativecount;
+  WCString thisValue;
+   if ( $!alternatecount$.Pop(thisValue) ) {
+      alternativecount = thisValue.GetInt();
+        }
+   else {
+      ParseError("Nothing to pop!",WARNING);
+        }
+
+   alternativecount++; //W5-1-97
+
+  thisValue.empty();
+  thisValue.AddInt(alternativecount);
+  $!alternatecount$.Push(thisValue);
+}                                           
+
+
+action Sequence
+{
+   //W5-1-97 last pushed alternative count value is always redundant.
+   WCString thisValue;
+   if ( ! $!alternatecount$.Pop(thisValue) ) {
+      ParseError("No redundant value to pop!",WARNING);
+        }
+}
+
+
+action AlternateSeq
+pre: 
+{
+  //Remember initial count value
+  AlternateSeq_thisValue.AddInt(0);
+  $!alternatecount$.Push(AlternateSeq_thisValue);
+
+   //Reset the AlternateSeq accumulator
+   $!alternateAcc$.GetValue().empty();
+   $!alternateAcc!list$.ClearAttributes();
+
+   AlternateSeq_bLastWasLoop = LastWasLoop();
+   AlternateSeq_bLastWSval   = gSkipWS;
+} 
+post:
+{
+   //If we got his far, we reach the end of an alternative sequence 
+
+   //W5-1-97 Pop previous count value 
+   int alternativecount =0;
+   if ( $!alternatecount$.Pop(AlternateSeq_thisValue) ) {
+      alternativecount = AlternateSeq_thisValue.GetInt();
+   }
+   else {
+      ParseError("AlternateSeq: Nothing to pop!",WARNING);
+   }
+
+   //If the last thing we parsed was a loop, then we don't need to
+   //output anything - 'alternatecount' is empty anyway.
+   if ( LastWasLoop() ) { 
+      return TRUE;
+   }
+
+   if ( !IsFirstInFunction() && AlternateSeq_bLastWSval  && !AlternateSeq_bLastWasLoop ) {
+          fbody() << Tabs << "SkipWS();\n";
+   }
+   
+   WCString actionString;
+
+   if ( IsFirstInLoop() ) {
+      actionString << "break;\n";
+
+      outputAlternateAcc(Tabs, actionString);
+      SetFirstInFunction(FALSE);
+   }
+   else   
+   if ( IsFirstInFunction() || !gDoErr ) {
+      actionString << "return FALSE;\n";
+
+      outputAlternateAcc(Tabs, actionString);
+      SetFirstInFunction(FALSE);
+   }
+   else
+   if ( !alternativecount) {
+      //Only one alternative
+      actionString << "return ParseError(" << FlushError() << ", NOFORCE | ERROR );\n";
+      outputAlternateAcc(Tabs, actionString);
+   }
+   else {
+      //Multiple alternatives
+
+      //W6-1-97 Do alternate push/pop for > 1 alternatives
+      fbody() << Tabs << "SkipAlter_Down();";
+
+      actionString << "return SkipAlter_Up(),ParseError(" << FlushError() << ", NOFORCE | ERROR );\n";
+      outputAlternateAcc(Tabs, actionString);
+
+      fbody() << Tabs << "SkipAlter_Up();";
+   }
+}
+
+
+action linemodifiers
+pre: {
+        # 
+        # Reset modifier flags before line modifiers can be parsed.
+        # This is necessary because the modifiers are mutually exclusive;
+        # if flags are set within modifier pre-conditions, it can (and will)
+        # happen that settings will be passed on to the next line if two
+        # consecutive lines have modifiers. 
+        # This was a very interesting 'feature'.
+        #
+        m_bEntryPoint = false;
+        m_bIgnoreActive = false;
+        m_bTokenActive = false;
+}
+
+
+action entr_ypoint
+{
+   m_bEntryPoint = true;
+   ParseError("Entry point detected.",NOTE);
+}
+
+
+action mod_ignore 
+{
+        m_bIgnoreActive = true;
+   ParseError("Ignore modifier detected.",NOTE);
+}
+
+
+action mod_token
+{
+        m_bTokenActive = true;
+   ParseError("token modifier detected.",INFO);
+}
+
+
+action Line
+{
+        if ( !m_bDoingDefinition && m_bDoingImplementation) {
+           static int count = 0;
+
+           if ( 0 == count++ ) {
+              ParseError("One or more Rules/patterns detected in implementation part",ERROR);
+                }
+        }
+
+   Block_Down();
+   Tabs.Dec();
+   gDoingLine = false;
+}
+
+
+action basicstatement 
+{
+   SetLoopType("SIMPLE");
+}
+
+
+action ExceptStatement
+pre:
+{
+   $!alternateAccStack$.Push("newval");
+   $!alternateAccStack.newval$ = $.alternateAcc$;	//Note that name of newval also changes!!!
+   $.alternateAcc$.ClearAttributes();
+}
+post:
+{
+          ParseError("Exception encountered",NOTE);
+
+        //$.alternateAcc.list$ now contains the except statement list (which must have exactly one item!!!)
+        //Add this list as an exception clause to the last parsed statement
+
+        if ( $.alternateAccStack.alternateAcc.list$.HasAttributes() ) {
+                CAttributeTree *pAttributes = $.alternateAccStack.alternateAcc.list$.GetAttributes(); 
+                pAttributes->MoveLast();
+
+                if ( $.alternateAcc.list$.HasAttributes() ) {
+                        $.alternateAcc.list$.GetAttributes()->Top( pAttributes->GetCurrent()->Set("exception").Set("newval" ) );
+                }
+                else {
+                  ParseError("Expected attributes for alternateAcc in ExceptStatement.",ERROR);
+                }
+        }
+        else {
+          ParseError("Expected attributes for alternateAccStack in ExceptStatement.",ERROR);
+        }
+
+   //Restore original statement
+   $.alternateAcc$ = $.alternateAccStack.alternateAcc$;
+   WCString dummy;
+   $.alternateAccStack$.Pop(dummy);
+}
+
+
+action BlockSeq
+pre:
+{
+   //Save as list
+   {
+           WCString blockName(20);
+           blockName << "ParseBlock" << m_BlockCount + 1;
+
+                CAttributeNode &node = $!alternateAcc!list$.AddTail("funccall", blockName).AddTail("parameters", "");
+                node.AddTail("newExceptCount","1");
+   }
+
+
+   Block_Up(NULL);
+
+   $!alternateAccStack$.Push("newval");
+   $!alternateAccStack.newval$ = $.alternateAcc$;	//Note that name of newval also changes!!!
+}
+post:
+{
+   $.alternateAcc$ = $.alternateAccStack.alternateAcc$;
+   WCString dummy;
+   $.alternateAccStack$.Pop(dummy);
+
+   Block_Down();
+   SetLoopType("SIMPLE"); //BlockType::SIMPLE);
+}
+
+
+action ConditionalSeq 
+pre:
+{
+   if ( gSkipWS && ! LastWasLoop() && !IsFirstInFunction() ) {
+          fbody() << Tabs << "SkipWS();";
+        }
+
+   fbody() << Tabs << "do  { //Start conditional block";
+                       //!
+   SetFirstInFunction(TRUE);
+   Tabs.Inc(); 
+   SetInLoop();
+}     
+post:
+{
+   if ( gSkipWS ) {
+          fbody()  << Tabs << "SkipWS();";
+        }
+
+   Tabs.Dec();
+   fbody() << Tabs << "} while (FALSE); //End conditional block\n";
+   SetLoopType("LOOP");
+}
+
+
+action WhileSeq 
+pre:
+{
+   fbody() << Tabs << "do  { //Start while block";
+   Tabs.Inc();
+
+   //put WS in output parsing routine
+   if ( gSkipWS ) {
+          fbody() << Tabs << "SkipWS();\n";
+        }
+
+   SetInLoop();
+   SetFirstInFunction(TRUE);
+}
+post:
+{
+   Tabs.Dec();
+   fbody() << Tabs << "} while ( TRUE); //End while block\n";
+
+   SetLoopType("LOOP");
+}
+
+
+action RepPostfix
+{
+        #ParseError("Doing Current token.",NOTE);
+
+        if ( 0 == $CurrentToken$.Length() ) {
+          return ParseError("Expected value for RepPostfix.",ERROR);
+        }
+
+        if ( $.alternateAcc.RepPostfix$.Exists() ) {
+          return ParseError("Statement already has a repeat postfix",ERROR);
+        }
+
+        if ( $.alternateAcc.list$.HasAttributes() ) {
+                CAttributeTree *pAttributes = $.alternateAcc.list$.GetAttributes(); 
+                pAttributes->MoveLast();
+
+                pAttributes->GetCurrent()->Set("RepPostfix").SetValue($CurrentToken$);
+
+            if ( gSkipWS ) {
+                        pAttributes->GetCurrent()->Set("skipWS");
+                 }
+
+        }
+        else {
+          ParseError("Expected attributes for alternateAccStack in RepPostfix.",ERROR);
+        }
+
+        //Remove last character
+        setCurrentToken("");
+}
+
+
+action ActionLabel
+{
+   gLastValue = $CurrentToken$; 
+
+   //Remember this label for the final check on existence
+   $!language![gParserLanguage]!ActionLabels![gLastValue]$;
+}
+
+
+action pre_indicator 
+{
+        #ignore result
+#	$CurrentToken$.empty();
+        setCurrentToken("");
+}
+
+
+action post_indicator 
+{
+        #ignore result
+#	$CurrentToken$.empty();
+        setCurrentToken("");
+}
+
+
+action pre_block
+pre: {
+        m_bUsesCurrentToken = false;
+}
+post: {
+   if ( !$.language.[gParserLanguage].Labels.[gLastValue]$.Exists() ) {
+       return ParseError("Label not defined; can't create pre-action block.",2);
+   }
+  
+   if ( m_bUsesCurrentToken ) {
+           ParseError("CurrentToken used in pre-block; contents are always empty.",ERROR);
+   }
+
+   //Store label at designated spot
+  $.language.[gParserLanguage].Labels.[gLastValue]!pre$.SetValue($CurrentToken$);
+}
+
+
+action post_block
+pre: {
+        m_bUsesCurrentToken = false;
+}
+post: {
+   if ( !$.language.[gParserLanguage].Labels.[gLastValue]$.Exists() )
+      return ParseError("Label not defined; can't create post-action block.",2);
+
+   if ( m_bUsesCurrentToken ) {
+      $.language.[gParserLanguage].Labels.[gLastValue]!currentToken$;
+   }
+  
+   //Store label at designated spot
+        $.language.[gParserLanguage].Labels.[gLastValue]!post$.SetValue($CurrentToken$);
+}
+
+
+action Actionblock 
+{
+   //W11-3-97 Check if at least one block defined
+   if ( !( $.language.[gParserLanguage].Labels.[gLastValue].pre$.Exists() ||
+           $.language.[gParserLanguage].Labels.[gLastValue].post$.Exists() ) )
+      return ParseError("Label does not have pre- or postaction block.",2);
+
+    if ( m_bDoingDefinition && !m_bDoingImplementation) {
+           static int count = 0;
+
+           if ( 0 == count++ )
+                  ParseError("One or more Action blocks found in definition part.",ERROR);
+    }
+}
+
+
+action State 
+{
+   if ( m_bDoingDefinition && !m_bDoingImplementation)
+      ParseError("State block found in definition part.",ERROR);
+
+   //All went OK -> store state in global buffer
+   if ( gDoneStateBlock) {
+      ParseError("Already parsed a State_block!\n",ERROR);
+   }
+   else {
+      gDoneStateBlock = true;
+   }
+}
+
+
+action main
+{
+   //All went OK -> store main in global buffer
+   if ( gDoneMainBlock) {
+          ParseError("Already parsed main()!", WARNING);
+        }
+   else {
+      gMainBlock = $CurrentToken$;
+      gDoneMainBlock = true;
+
+          $!settings!mainblock$.SetValue(gMainBlock);
+    }
+}
+
+
+action member_state
+{
+        //W15-12-96 the Cast to reference in the following line is to ensure that 
+        //          member WCString objects in m_stateVarAcc are not overwritten.
+        WCString &tempVarAcc = m_stateVarAcc;
+        tempVarAcc = $CurrentToken$;
+}
+
+
+action type_state
+{
+   m_stateVarAcc.pre_action = $CurrentToken$; //used for member type
+}
+
+action oldbool
+{
+        static bool bShowedWarning = false;
+
+        if ( !bShowedWarning )	{
+                WCString msg = "'TRUE'/'FALSE' considered obsolete; use 'true'/'false' instead.\n"
+                                           "\t(This warning is shown only once)";
+                ParseError( msg, NOTE);
+                bShowedWarning = true;		
+        }
+}
+
+action initvalue
+{
+   m_stateVarAcc.actionblock = $CurrentToken$;   //used for init value
+}
+
+action member_var
+pre: {
+   //Clear state var accumulator
+   m_stateVarAcc.empty();
+   m_stateVarAcc.pre_action.empty();   //used for member type
+   m_stateVarAcc.actionblock.empty();  //used for init value
+}
+post:
+{
+   //If we got this far, m_stateVarAcc contains new state var
+   //check if given state var already defined
+   if ( $.language.[gParserLanguage].Statevars.[m_stateVarAcc]$.Exists() )
+     return ParseError(ERR18);
+
+   CAttributeNode &thisAttrib = $!language![gParserLanguage]!Statevars![m_stateVarAcc]$;   
+
+   //Add member type and init value, if present
+   if ( m_stateVarAcc.pre_action.Length() )
+      thisAttrib.Set("membertype").SetValue(m_stateVarAcc.pre_action.GetBuf() );
+
+   if ( m_stateVarAcc.actionblock.Length() ) {
+      thisAttrib.Set("initvalue").SetValue(m_stateVarAcc.actionblock.GetBuf() );
+   }
+   else {
+      //Set default value for known types
+          
+          if ( "bool" == m_stateVarAcc.pre_action) {
+                  thisAttrib.Set("initvalue").SetValue("false");
+          }
+          else
+          if ( "int" == m_stateVarAcc.pre_action ) {
+                thisAttrib.Set("initvalue").SetValue("0");  
+          }
+   }
+}
+
+
+action definition
+{
+        m_bDoingDefinition = true;
+}
+
+
+action implementation
+{
+        m_bDoingImplementation = true;
+}
+
+
+action languageheader
+{
+        if ( m_bDoingDefinition && $.language.[gParserLanguage].donedefinition$.Exists() ) {
+                WCString errString("Already did definition part for language ");
+                errString << gParserLanguage;
+                ParseError(errString,ERROR);
+        }
+
+        if ( m_bDoingImplementation && $.language.[gParserLanguage].doneimplementation$.Exists() ) {
+                WCString errString("Already did implementation part for language ");
+                errString << gParserLanguage;
+                ParseError(errString,ERROR);
+        }
+
+        if ( !m_bDoingDefinition && !m_bDoingImplementation) {
+                //The parse language block combines the definition and implementation part
+                m_bDoingDefinition = true;
+                m_bDoingImplementation = true;
+        }
+}
+
+
+action languageblock          //W11-3-97
+{
+   if ( m_bDoingDefinition )
+      $!language![gParserLanguage]!donedefinition$;
+
+   if ( m_bDoingImplementation )
+      $!language![gParserLanguage]!doneimplementation$;
+
+   //Reset parameters for the next language
+   gDoneStateBlock = false;
+   m_bDoingDefinition = false;
+   m_bDoingImplementation = false;
+}
+
+
+#
+# Macro block actions
+#
+
+action attrpoint
+{
+   m_attrpoint = $CurrentToken$;
+}
+
+
+action realpathname
+{
+   #Can't use << in following
+#   $CurrentToken$ = WCString("\"") +  $CurrentToken$ + WCString("\"");
+   setCurrentToken(  WCString("\"") +  $CurrentToken$ + WCString("\"") );
+}
+
+
+action var_start
+{
+        #ignore value
+#	$CurrentToken$.empty();
+        setCurrentToken("");
+}
+
+
+action var_end
+{
+        #ignore value
+#	$CurrentToken$.empty();
+        setCurrentToken("");
+}
+
+
+action set_dot
+{
+        #ignore value
+#	$CurrentToken$.empty();
+        setCurrentToken("");
+}
+
+
+action get_dot
+{
+        #ignore value
+#	$CurrentToken$.empty();
+        setCurrentToken("");
+}
+
+
+action set_path
+{
+   if ( !$CurrentToken$.Length() )
+      return ParseError("CurrentToken has length zero in action \'set_path\'",ERROR);
+
+#   $CurrentToken$ = WCString(".Set(") + $CurrentToken$ + WCString(")");
+        setCurrentToken(WCString(".Set(") + $CurrentToken$ + WCString(")") );
+
+}
+
+
+action get_path
+{
+   if ( !$CurrentToken$.Length() )
+      return ParseError("CurrentToken is zero in action \'get_path\'",ERROR);
+
+#   $CurrentToken$ = WCString(".Get(") + $CurrentToken$ + WCString(")");
+        setCurrentToken(WCString(".Get(") + $CurrentToken$ + WCString(")") );
+}
+
+
+action macro_start
+{
+   //Get rid of last char ('$')
+#   $CurrentToken$.empty();
+        setCurrentToken("");
+   
+   m_macroblock.empty();
+}
+
+
+action macro_end
+{
+   //Get rid of trailing '$'
+#   $CurrentToken$.empty();
+        setCurrentToken("");
+}
+
+
+action rel_path {
+        setCurrentToken(WCString("(*") + $CurrentToken$ + ")" );
+}
+
+
+action abs_path {
+        setCurrentToken(WCString("m_attributes") + $CurrentToken$ );
+}
+
+action macro_path
+{
+   m_macroblock = $CurrentToken$;
+}
+
+
+action macro_foreach
+{
+   if ( !m_attrpoint.Length() )
+      return ParseError("We need an attribute pointer in \'foreach\'",ERROR);
+
+   if ( !m_macroblock.Length() )
+      return ParseError("We need an attribute path in \'foreach\'",ERROR);
+
+   WCString pRoot("pRoot");
+   pRoot.AddInt(++m_nRootcnt);
+
+        setCurrentToken(
+                "\nCAttributeTree *" + pRoot + "= " + m_macroblock + ".GetAttributes();\n"
+        + "if (" + pRoot + ") {\n"
+        );
+
+   
+   $!foreachstack$.Push(pRoot);
+   $.foreachstack.[pRoot]$.SetValue(m_attrpoint);
+
+   m_macroblock.empty();
+}
+
+
+action macro_body
+{
+   WCString pRoot;
+   WCString attrpoint;
+   
+   if ( $.foreachstack$.Top(pRoot) == 0) {
+      return ParseError("No value on foreach-stack!",ERROR);
+   }
+
+   attrpoint = $.foreachstack.[pRoot]$.GetValue();
+
+   if ( attrpoint == WCString("donebody") ) {
+      WCString errstr("Already done body for foreach-block ");
+      errstr << "\'" << pRoot << "\'";
+
+      return ParseError(errstr,ERROR);
+   }
+
+        setCurrentToken( WCString("\n   ") +
+           "for( CAttributeTree::iterator " + attrpoint + " = " + pRoot + "->start(); " + attrpoint + " != " + pRoot + "->end(); ++" + attrpoint + ") {\n"
+        );
+
+   //Following signals that we've done this loop
+   $.foreachstack.[pRoot]$.SetValue("donebody");
+}
+
+
+action macro_forend
+{
+   WCString pRoot;
+   
+   if (! $.foreachstack$.Top(pRoot) ) {
+      return ParseError("No value on foreach-stack!",ERROR);
+   }
+
+   if ( $.foreachstack.[pRoot]$.GetValue() != WCString("donebody") ) {
+      WCString errstr("Macro end foreach: Did not do body for foreach-block ");
+      errstr << "\'" << pRoot << "\'";
+
+      return ParseError(errstr,ERROR);
+   }
+
+#Code for using iterators (doesn't work yet)
+   setCurrentToken( 
+        WCString( "   }\n" ) +
+         "}\n"
+        );
+
+   $.foreachstack$.Pop(pRoot);
+}
+
+
+action macro_currenttoken 
+{
+  m_bUsesCurrentToken = true;
+
+  //Insert code to use current token (replacing macro name)
+  //(:-) Don't you just love this?)
+  setCurrentToken( "currentToken()" );
+}
+
+                                                                 
+action macro_block
+{
+   if ( m_macroblock.Length() ) {
+      //It must have been a path
+          setCurrentToken( m_macroblock);
+   }
+}
+
+
+//
+// Actions for Function definitions
+// 
+
+action returntype
+{
+        gLastValue = $CurrentToken$;
+        setCurrentToken("");
+}
+
+
+action funcheader
+{
+   //gLastValue should contain the return type
+   if ( !gLastValue.Length() )
+      return ParseError("Return-type of function is empty!",ERROR);
+
+        //'feature': can't put $CurrentToken$ directly into path
+        WCString tokenval = $CurrentToken$;
+   $!language![gParserLanguage]!functions![tokenval]!returnval$.SetValue(gLastValue);
+
+        gLastValue = $CurrentToken$;
+        setCurrentToken("");
+}
+
+
+action Function
+{
+        if ( m_bDoingDefinition && !m_bDoingImplementation) {
+           static int count = 0;
+
+           if ( 0 == count++ ) {
+              ParseError("One or more Function blocks found in definition block",ERROR);
+           }
+    }
+
+   //All went OK -> store block in attrib tree
+   if ( !$.language.[gParserLanguage].functions.[gLastValue]$.Exists() ) {
+      WCString errString;
+      errString << WCString("Function \'") << gLastValue << "\' Does not exist.";
+      return ParseError(errString, ERROR);
+   }
+
+   $!language![gParserLanguage]!functions![gLastValue]$.SetValue($CurrentToken$);
+}
+
+
+//
+//Functions
+//
+
+function BOOL outputAlternateAcc(TabType &Tabs, WCString &actionString)
+{
+        int tabCount = 0;
+        int numItems = ($.alternateAcc.list$.HasAttributes())?( $.alternateAcc.list$.GetAttributes()->GetNumItems() ):0;
+        int bDoTabIncrement = FALSE;
+
+        BOOL bIsConditional = FALSE;
+
+         //Output the list
+         $foreach pElement in .alternateAcc.list$
+         $body$
+
+                //
+                // NOTE: repeat postfixes and exceptions exclude each other in the syntax
+                //
+
+                //Check for repeat postfixes
+                if ( pElement->Get("RepPostfix").Exists() ) {
+                        WCString repPostfix = pElement->Get("RepPostfix").GetValue();
+
+                        if ( WCString("+") == repPostfix ) {
+
+                                fbody() << Tabs << "if (";
+                                makeFunctionCallFromAlternateAccElement(pElement, FALSE);
+                                fbody()	<< ") {";
+
+                                Tabs.Inc();
+                                fbody()  << Tabs << "do {";
+
+                                if ( pElement->Get("skipWS").Exists() ) {
+                                        Tabs.Inc();
+                                   fbody() << Tabs << "SkipWS();";
+                                   Tabs.Dec();
+                                }
+
+                                fbody()  << Tabs << "} while ("; 
+                                makeFunctionCallFromAlternateAccElement(pElement, FALSE);
+                                fbody()	<< ");";
+                                Tabs.Dec();
+
+                                fbody()  << Tabs << "}" 
+                                         << Tabs << "else";
+
+                                bDoTabIncrement = TRUE;
+                        }
+                        else
+                        if ( WCString("*") == repPostfix ) {
+                                if ( 1 < numItems ) {
+                                        WCString errString;
+                                        errString << "Can not use \'*\' postfix in alternative statement";
+                                        ParseError(errString,ERROR);
+                                }
+                                else {
+                                        fbody() << Tabs << "while(";
+                                        makeFunctionCallFromAlternateAccElement(pElement, FALSE);
+                                        fbody() << ") {";
+
+                                        if ( pElement->Get("skipWS").Exists() )
+                                           fbody() << "SkipWS();";
+
+                                        fbody() << "}";
+
+                                        bIsConditional = TRUE;
+                                }
+                        }
+                        else
+                        if ( WCString("?") == repPostfix ) {
+                                if ( 1 < numItems ) {
+                                        WCString errString;
+                                        errString << "Can not use \'?\' postfix in alternative statement";
+                                        ParseError(errString,ERROR);
+                                }
+                                else {
+                                         fbody() << Tabs << "if (";
+                                        makeFunctionCallFromAlternateAccElement(pElement, FALSE);
+                                        fbody()	<< ") {}";
+
+                                        bIsConditional = TRUE;
+                                }
+                        }
+                        else {
+                          static int count = 0;
+                          if ( 0 == count++ ) {
+                                WCString errString;
+                                errString << "Unknown RepPostfix \'" << repPostfix << "\'encountered";
+                                  ParseError(errString,ERROR);
+                          }
+                          return FALSE;
+                        }
+                }
+                else {
+                        fbody() << Tabs   << "if (";
+
+                        //
+                        //Check for exceptions
+                        //
+                        // Note that the exceptions are put in front of the regular calls;
+                        // this is by design
+                        //
+                        if ( pElement->Get("exception").HasAttributes() ) {
+                                CAttributeNode Exception;
+
+                                pElement->Get("exception").GetAttributes()->Top(Exception);
+                                if ( Exception.Exists() ) {
+                                        static int count = 0;
+
+                                        makeFunctionCallFromAlternateAccElement(&Exception, TRUE);
+                                        fbody() << " || "; 
+
+                                        //Exception found, add to list.
+                                        WCString name;
+                                        name << Exception.GetName() << " val: " << Exception.GetValue();
+                                        $!language![gParserLanguage]!exceptions$.Push(name);
+                                }
+
+                                //Check if exception has exception (error - must enclose in braces for this case)
+                                if ( Exception.Get("exception").Exists() )
+                                   ParseError("Can not catenate except clauses - use ()-braces.",ERROR);
+                        }
+
+                        fbody() << "!"; 
+                        makeFunctionCallFromAlternateAccElement(pElement, FALSE);
+                        fbody() << ")";
+                        bDoTabIncrement = TRUE;
+                }
+
+                if ( bDoTabIncrement ) {
+                        if ( 0 < numItems )
+                           fbody() << " {";
+
+                        Tabs.Inc();
+                        ++tabCount;
+                }
+         $end foreach$
+
+        if ( bDoTabIncrement ) {
+                fbody() << Tabs << actionString;
+
+                while ( 0 < tabCount ) {
+                        Tabs.Dec();
+                        --tabCount;
+
+                        if ( 0 < numItems )
+                                fbody() << Tabs << "}";
+                }
+        }
+
+        return bIsConditional;
+}
+
+
+function void makeFunctionCallFromAlternateAccElement(CAttributeNode *pRoot, BOOL doAlternative)
+{
+        if (!pRoot) {
+                ParseError("null pointer passed to makeFunctionCallFromAlternateAccElement().",ERROR);
+                return;
+        }
+
+        if ( WCString("funccall") != pRoot->GetName() ) {
+                ParseError("Expected function call node in makeFunctionCallFromAlternateAccElement().",ERROR);
+                return;
+        }
+
+        //
+        // The function call gets stored as a separate item in the attribute list of the calling function body.
+        //
+
+        #Following derived from the output of a $foreach$ loop
+        #
+        # Following loop copies the alternative values in the value parts of the parameter nodes
+        # to the name parts of the nodes. In this way, we don' need to defer the decision to use the
+        # alternative values.
+        #
+        CAttributeTree *pRoot3= pRoot->Get("parameters").GetAttributes();
+        if (pRoot3) {
+           for( CAttributeTree::iterator pElement2 = pRoot3->start(); pElement2 != pRoot3->end(); ++pElement2) {
+
+                        if ( doAlternative && ( pElement2->GetValue().Length() > 0 ) ) {
+                                pElement2->SetName(pElement2->GetValue());
+                        }
+                        pElement2->SetValue("");
+                }
+        }
+
+
+        #Add main node to the end of the fbody list.
+        CAttributeTree *pAttributes = $.BlockStack.Block.fbody$.GetAttributes(); 
+        pAttributes->AddTail(*pRoot);
+
+        fbodyNewItem();
+}
+
+
+function void SetFirstInFunction(int val )
+{
+   WCString strval;
+   strval.AddInt(val);
+   
+   $.BlockStack.Block!FirstInFunction$.SetValue(strval);
+}
+
+
+function BOOL IsFirstInFunction()
+{
+   WCString strval;
+   
+   strval = $.BlockStack.Block.FirstInFunction$.GetValue();
+   return strval.GetInt() != 0;
+}
+
+
+function void SetInLoop()
+{
+  WCString strval;
+
+  if ( !$.BlockStack.Block.FirstInLoop$.Exists() ) {
+     strval.AddInt(1);
+    $.BlockStack.Block!FirstInLoop$.SetValue(strval);
+  }
+  else {
+    strval = $.BlockStack.Block.FirstInLoop$.GetValue();
+    int temp = strval.GetInt();
+    #strval = "";
+        strval.empty();
+    strval.AddInt( temp +1 );
+    $.BlockStack.Block!FirstInLoop$.SetValue(strval);
+
+  }
+
+}
+
+
+function BOOL IsFirstInLoop()
+{
+  WCString strval;
+  BOOL returnval;
+
+  if ( !$.BlockStack.Block.FirstInLoop$.Exists() )
+     return FALSE;
+
+   strval = $.BlockStack.Block.FirstInLoop$.GetValue();
+   int temp = strval.GetInt();
+   returnval = (temp !=0);
+   
+   if ( temp > 0 ) temp--; else temp=0;
+   strval.empty();
+   strval.AddInt( temp );
+   $.BlockStack.Block!FirstInLoop$.SetValue(strval);
+
+   return returnval;
+}
+
+
+function void SetLoopType(WCString val)
+{
+   $.BlockStack.Block!LastStatType$.SetValue(val);
+}
+
+function BOOL LastWasLoop()
+{
+   if ( $.BlockStack.Block.LastStatType$.Exists() &&
+        $.BlockStack.Block.LastStatType$.GetValue() == WCString("LOOP") )
+      return TRUE;
+   else
+      return FALSE;
+}
+
+
+function WCString &fconst() 
+{ 
+   if ( !$.BlockStack.Block$.Exists() ) 
+      ParseError("Fatal Error: No blocks defined!",FATAL);
+
+   return $.BlockStack.Block!fconst$.GetValue() ; 
+}
+
+
+function void fbodyNewItem() 
+{
+        $.BlockStack.Block.fbody$.AddTail("", "");
+}
+
+function WCString &fbody() 
+{ 
+   if ( !$.BlockStack.Block$.Exists() ) 
+      ParseError("Fatal Error: No blocks defined!",FATAL);
+
+        if ( ! $.BlockStack.Block.fbody$.HasAttributes() ) {
+                fbodyNewItem();
+        }
+
+        #Get very last item in the fbody list.
+        CAttributeTree *pAttributes = $.BlockStack.Block.fbody$.GetAttributes(); 
+        pAttributes->MoveLast();
+
+        return pAttributes->GetCurrent()->GetValue();
+}
+
+
+
+////////////////////////////////////////////////////////////////////////////
+// W17-12-95
+//
+// Start the creation of a new routine - parameter is used in routine name
+//
+// If no parameter given, Parse_Block#() is assumed, where # is a counter
+//
+function void Block_Up(char *aLabel)
+{
+   //Create new block on the stack
+   $!BlockStack$.Push("Block");
+   $.BlockStack.Block!fbody$;
+   $.BlockStack.Block!FirstInFunction$.SetValue("-1");   //W9-4-97 IDIOT! Default == TRUE
+  
+   //Create function header
+   if ( aLabel) {
+      $.BlockStack.Block!Label$.SetValue(aLabel); //Label only given value if normal label, not internal block
+   }
+   else {
+      ++m_BlockCount;
+
+      //W9-4-97 Also save interim blocks in the attribute tree.
+      WCString block("Block");
+      block.AddInt(m_BlockCount);
+      $.BlockStack.Block!count$.SetValue(block);
+   }
+}
+
+
+////////////////////////////////////////////////////////////////////////////
+// W17-12-95
+//
+// Send current block to output and flush its contents. Process previous block. 
+//
+// if m_BlockCount == -1, there are no blocks defined (empty block list)
+//
+function void Block_Down(void)
+{
+   if ( !$.BlockStack.Block$.Exists() ) 
+      ParseError("Fatal Error: No blocks defined!",FATAL);
+   
+   //Flush all to output if Pass2
+   WCString thisLabel = $.BlockStack.Block.Label$.GetValue(); //Label only given value if normal label, not internal block
+
+
+   if ( thisLabel.Length() > 0 ) {
+      //Labelname given; it's not an internal label
+      if ( fconst().Length() )
+         $.language.[gParserLanguage].Labels![thisLabel]!fconst$.SetValue( fconst() );
+
+#      $.language.[gParserLanguage].Labels![thisLabel]!fbody$.SetValue( $.BlockStack.Block.fbody$.toString() );
+      $.language.[gParserLanguage].Labels![thisLabel]!fbody$ = $.BlockStack.Block.fbody$;
+   }
+   else {
+      //It must be an internal label
+      if ( $.BlockStack.Block.count$.Exists() ) {
+         thisLabel = $.BlockStack.Block.count$.GetValue();
+
+         if ( fconst().Length() )
+            $.language.[gParserLanguage]!InternalLabels![thisLabel]!fconst$.SetValue( fconst() );
+
+#         $.language.[gParserLanguage]!InternalLabels![thisLabel]!fbody$.SetValue( $.BlockStack.Block.fbody$.toString() );
+         $.language.[gParserLanguage]!InternalLabels![thisLabel]!fbody$ = $.BlockStack.Block.fbody$;
+      }
+      else
+         ParseError("Undefined stuff on Block-stack",ERROR);
+   }
+
+   //Pop current block
+   WCString dummy;
+   $.BlockStack$.Pop(dummy);
+}
+
+
+function BOOL doSkipWS() 
+{
+        return gSkipWS;
+}
+
+
+////////////////////////////////////////////////////////////////////////////
+// 7-4-97 The Final Check.
+//
+// Check if all the elements we have parsed and collected are suitable for
+// output. In particular, the encountered labels are checked for 
+// consistency.
+//
+// This function is called after the entire file has been parsed and before
+// creation of output begins.
+//
+// If any errors are encountered, this function will generate a fatal error.
+//
+function BOOL DoFinalCheck()
+{
+   bool bFoundMissingLabels         = false;
+   bool bFoundMissingFields         = false;
+   bool bFoundMissingDefinition     = false;
+   bool bFoundMissingImplementation = false;
+
+   //Check if all encountered labels are defined
+   $foreach pLang in .language$
+   $body$
+       gParserLanguage = pLang->GetName();
+       WCString tempvalue;
+
+      //
+          // Check if definition and implementation parts of language have been defined.
+          //
+          if ( !$.language.[gParserLanguage].donedefinition$.Exists() ) {
+                 WCString errstr("Definition part for language  ");
+                 errstr << gParserLanguage << " has not been defined.";
+                 ParseError(errstr,ERROR);
+                 bFoundMissingDefinition = true;
+          }
+
+          if ( !$.language.[gParserLanguage].doneimplementation$.Exists() ) {
+                 WCString errstr("Implementation part for language  ");
+                 errstr << gParserLanguage << " has not been defined.";
+                 ParseError(errstr,ERROR);
+                 bFoundMissingImplementation = true;
+          }
+
+      //
+      //Check rightlabels
+      //
+      $foreach pRightLabel in .language.[gParserLanguage].RightLabels$
+      $body$
+         tempvalue = pRightLabel->GetName();
+         if ( !$.language.[gParserLanguage].Labels.[tempvalue]$.Exists() ) {
+            WCString errstr("RightLabel \'");
+            errstr << tempvalue << "\' has not been defined.";
+            ParseError(errstr,ERROR);
+            bFoundMissingLabels = true;
+         }
+      $end foreach$
+
+      //
+      //Check Action Labels
+      //
+      $foreach pActionLabel in .language.[gParserLanguage].ActionLabels$
+      $body$
+         tempvalue = pActionLabel->GetName();
+         if ( !$.language.[gParserLanguage].Labels.[tempvalue]$.Exists() ) {
+            WCString errstr("ActionLabel \'");
+            errstr << tempvalue << "\' has not been defined.";
+            ParseError(errstr,ERROR);
+            bFoundMissingLabels = true;
+         }
+      $end foreach$
+
+      //
+      // Check if all labels have an fbody field.
+      //
+      $foreach pLabel in .language.[gParserLanguage].Labels$
+      $body$
+         if ( ! pLabel->Get("fbody").Exists() ) {
+            WCString errstr("Field fbody does not exist for label ");
+                        errstr += pLabel->GetName();
+            ParseError(errstr,ERROR);
+            bFoundMissingFields = true;
+         }
+      $end foreach$
+
+   $end foreach$
+
+    if (bFoundMissingLabels)
+       return ParseError("Encountered undefined RightLabels and ActionLabels; bailing out.",FATAL);
+
+    if (bFoundMissingFields)
+       return ParseError("Encountered missing fconst and fbody fields; bailing out.",FATAL);
+
+    if (bFoundMissingDefinition)
+       return ParseError("Encountered missing definition part; bailing out.",FATAL);
+
+    if (bFoundMissingImplementation)
+       return ParseError("Encountered missing implementation part; bailing out.",FATAL);
+
+    return TRUE;
+}
+
+
+
+
+function void DoFinalProcessing() 
+{
+   #Check for presence of create function
+   $foreach pFunction in .language.[gParserLanguage].functions$
+   $body$
+      if ( pFunction->GetName() == "create()" ) {
+                 #Move to outside functions list
+                 $.language.[gParserLanguage]!specials!create$.SetValue(pFunction->GetValue());
+
+                 $.language.[gParserLanguage].functions$.GetAttributes()->ClearCurrent();
+
+                 ParseError( "Detected create() routine.", NOTE);
+                 break;
+                
+          }
+   $end foreach$
+
+
+   #Check for presence of destroy function
+   $foreach pFunction in .language.[gParserLanguage].functions$
+   $body$
+      if ( pFunction->GetName() == "destroy()" ) {
+                 #Move to outside functions list
+                 $.language.[gParserLanguage]!specials!destroy$.SetValue(pFunction->GetValue());
+
+                 $.language.[gParserLanguage].functions$.GetAttributes()->ClearCurrent();
+
+                 ParseError( "Detected destroy() routine.", NOTE);
+                 break; 
+                
+          }
+   $end foreach$
+}
+
+function void create() {
+        //Empty for the time being
+}
+
+
+
+
+//
+// End Language Definition.
+//
+
+}
+
+#Following doesn't work any more!!!
+#using language file insertmain.txt.
+
+
+
