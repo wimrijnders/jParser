@@ -1,5 +1,5 @@
 /**
- * $Id: EBNF.java 10 2008-08-12 10:56:22Z wri $
+ * $Id$
  *
  * TODO:
  * ====
@@ -187,7 +187,16 @@ public class BasicParser {
 
 
 	/**
-	 * Source: http://www.rgagnon.com/javadetails/java-0031.html
+ 	 * Make a dynamic call to given method.
+ 	 * 	
+	 * Reflection is used internally to make the call.
+	 *
+ 	 * Methods  in derived classes which reside in other packages, need
+ 	 * to be declared public for this to work.
+ 	 *
+ 	 * @param method name of method to call
+ 	 * @param state state information of current call.
+	 * @see <a href="http://www.rgagnon.com/javadetails/java-0031.html">Source</a>
 	 */
 	protected boolean dynamicCall( String method, State state ) throws 
 			ParseException,
@@ -213,7 +222,9 @@ public class BasicParser {
 	/**
 	 * Make a dynamic call to a rule.
 	 *
-	 * Reflection is used internally to make the call.
+	 * The intention is to call generated syntax rules dynamically. The name is 
+	 * intentionally chosen short (one letter), because this call appears often in the
+	 * generated code, and we want to keep the latter readable.
 	 *
 	 * @param method   Name of method to call
 	 * @param oldState Parse state of the calling method
@@ -347,9 +358,7 @@ public class BasicParser {
 		String output = state.getCurNode().show( getFirstTwoLines() );
 
 		try {
-			FileWriter fw = new FileWriter( localFileName );
-			fw.write(output);
-			fw.close();
+			Util.saveFile( localFileName, output);
 		} catch ( IOException e ) {
 			error("saveNodes exception: "+ e.toString() );
 		}

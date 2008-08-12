@@ -1,5 +1,5 @@
 /**
- * $Id: EBNF.java 10 2008-08-12 10:56:22Z wri $
+ * $Id$
  *
  */
 package nl.axizo.parser;
@@ -108,6 +108,19 @@ public class Node {
 		return set( key, "" );
 	}
 
+
+	/**
+ 	 * Output contents of a node.
+ 	 *
+ 	 * Output the key and value of the current node, and the keys
+ 	 * and values of the child nodes recursively. The contents
+ 	 * of the child nodes are shown indented by tabs relative to
+ 	 * the current node.
+ 	 *
+ 	 * @param tabs number of spaces to indent node information
+ 	 * @param showFirstTwoLines if true, show only first two lines of value
+ 	 * @return textual representation of node
+ 	 */
 	public String show(int tabs, boolean showFirstTwoLines) {
 		String tab = Util.makeTab( tabs );
 		String showVal = value;
@@ -126,10 +139,22 @@ public class Node {
 		return ret;
 	}
 
+	/**
+ 	 * Output contents of a node.
+ 	 *
+ 	 * Override of {@link #show(int,boolean) show(int,boolean)},
+ 	 * without indenting and showing entire value of node.
+ 	 */
 	public String show() {
 		return show( 0, false );
 	}
 
+	/**
+ 	 * Output contents of a node.
+ 	 *
+ 	 * Override of {@link #show(int,boolean) show(int,boolean)},
+ 	 * showing entire value of node.
+ 	 */
 	public String show( boolean showFirstTwoLines) {
 		return show( 0, showFirstTwoLines );
 	}
@@ -179,10 +204,11 @@ public class Node {
 
 	
 	/**
- 		 * Search nodes depth-first and return all nodes
- 		 * with the key equal to the given parameter.
- 		 *
- 		 */
+ 	 * Search nodes depth-first and return all nodes
+ 	 * with the key equal to the given parameter.
+ 	 *
+ 	 * @param label key to search for
+ 	 */
 	public Vector findNodes( String label ) {
 		Vector ret = new Vector();
 

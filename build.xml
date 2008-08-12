@@ -3,9 +3,10 @@
   -->
 <project name="parser" default="build" basedir=".">
 	<!-- global properties -->
-	<property name="src" location="src"/>
+	<property name="src"   location="src"/>
 	<property name="build" location="build"/>
-	<property name="dist" location="dist"/>
+	<property name="dist"  location="dist"/>
+	<property name="doc"   location="doc"/>
 
 	<target name="init">
 		<!-- Create the time stamp -->
@@ -32,12 +33,24 @@
 		</java>
 	</target>
 
+	<target name="doc" depends="build">
+		<javadoc sourcepath="${src}"
+				 destdir="${doc}"
+				 access="private"
+		>
+			<doctitle><![CDATA[<h1>Parser Technical Documentation</h1>]]></doctitle>
+		</javadoc>
+	</target>
+
 	<target name="clean" >
 	<delete>
 		<fileset dir="${build}">
 			<include name="**/*" />
 		</fileset>
 		<fileset dir="${dist}">
+			<include name="**/*" />
+		</fileset>
+		<fileset dir="${doc}">
 			<include name="**/*" />
 		</fileset>
 	</delete>

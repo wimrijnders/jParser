@@ -7,6 +7,7 @@ package nl.axizo;
 import nl.axizo.parser.*;
 import java.util.regex.*;
 import java.util.Vector;
+import java.io.IOException;
 
 
 public class EBNF extends BasicParser {
@@ -688,6 +689,7 @@ public class EBNF extends BasicParser {
 
 	protected void parse()
 		throws NoSuchMethodException, IllegalAccessException {
+
 		State state = new State();
 
 		// Parse according to rules
@@ -704,6 +706,9 @@ public class EBNF extends BasicParser {
 		// Do node translations
 		translate( state );
 
+		// Create output
+		generate( state );
+
 		// Exit
 		saveNodes( state );
 		showFinalResult(state);
@@ -718,17 +723,11 @@ public class EBNF extends BasicParser {
 	}
 
 
-	/**
-	 * TODO: 
-	 *
-	 * - Add whitespace handling
-	 * - Need to sort out the final two optional parameters.
-	 */
-	private void translate( State state ) {
 
-		////////////////////
-		// charsets
-		////////////////////
+	/**
+ 	 * Perform translation steps on charset nodes.
+	 */
+	private void translateCharsets( State state ) {
 
 		// Translate special characters in charset ranges to the java regexp equivalents
 		Vector res =  state.getCurNode().findNodes( "range" );
@@ -783,10 +782,14 @@ public class EBNF extends BasicParser {
 			p.setValue( "parseCharset( " + n.getValue() + ", state )" ); 
 			p.removeChildren();
 		}
+	}
 
-		////////////////////
-		// literals
-		////////////////////
+
+	/**
+ 	 * Perform translation steps on literal nodes.
+	 */
+	private void translateLiterals( State state ) {
+		Vector res;
 
 		res =  state.getCurNode().findNodes( "literal" );
 		for( int i = 0;  i < res.size(); ++i ) {
@@ -803,6 +806,25 @@ public class EBNF extends BasicParser {
 			p.setValue( "parseString( \"" + n.getValue() + "\", state )" ); 
 			p.removeChildren();
 		}
+	}
+
+
+	/**
+ 	 * Perform translation steps on the nodes which were generated
+ 	 * after a succesfull parse.
+ 	 *
+ 	 * <p><pre>
+	 * <b>TODO:</b> 
+	 *
+	 * - Add whitespace handling
+	 * - Need to sort out the final two optional parameters.
+	 * </pre></p>
+	 */
+	private void translate( State state ) {
+		Vector res;
+
+		translateCharsets( state);
+		translateLiterals( state);
 
 		////////////////////
 		// Labels
@@ -873,6 +895,80 @@ public class EBNF extends BasicParser {
 				}
 			}
 		}
+	}
+
+
+	/**
+ 	 * Generate output from the current node tree.
+ 	 */
+	private void generate( State state ) {
+		final String outfile = "output.java";
+
+		String output = "";
+
+		Node root = state.getCurNode();
+
+		String className       = root.get("language").get("label").getValue();
+		Node   member_patterns = root.get("temp").get("members");
+		Node   init_patterns   = root.get("temp").get("ctor");
+
+		output += 
+				  "/* THIS FILE IS GENERATED!\n"
+				+ " *\n"
+				+ " * Editing it is a bad idea.\n"
+				+ " */\n"
+				+ "import nl.axizo.parser.*\n"
+				+ "import java.util.regex.*\n"
+				+ "\n"
+				+ "\n"
+				+ "public class " + className + " extends BasicParser {\n\n";
+
+		int num = member_patterns.numChildren();
+		for( int i = 0;  i < num; ++i ) {
+			output += member_patterns.get(i).getValue();
+		}
+
+		// Generate the constructor
+		output += "\n\n\t" + "public " + className + "(String filename) {\n"
+				+ "\t\tsuper(filename);\n\n";
+
+		num = init_patterns.numChildren();
+		for( int i = 0;  i < num; ++i ) {
+			output += init_patterns.get(i).getValue();
+		}
+
+		output += "\t}\n\n";
+
+		// Generate methods
+		Vector rules = root.findNodes("rule");
+		for( int i = 0;  i < num; ++i ) {
+			Node rule = (Node) rules.get(i);
+			output += generateMethod( rule );
+		}
+
+		output += "}\n";
+
+		// Save what we got
+		try {
+			Util.saveFile( outfile, output );
+		} catch( IOException e) {
+			error( "error while saving '" + outfile + "': " + e.toString() );
+		}
+	}
+
+
+	/**
+ 	 * Generate method code from given Node.
+ 	 */
+	private String generateMethod( Node rule ) {
+		String name   = rule.get("label").getValue();
+		String output = "";
+
+		output += "\tpublic boolean " + name + "(State state ) throws ParseException {\n"
+				+ "\t\t// Content goes here\n"
+				+ "\t}\n\n";
+
+		return output;
 	}
 
 
