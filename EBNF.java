@@ -557,7 +557,7 @@ class BasicParser {
 }
 
 
-class EBNF extends BasicParser {
+public class EBNF extends BasicParser {
 	private Pattern whitespace;
 	private Pattern eol;
 	private Pattern ts;
