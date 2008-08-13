@@ -28,6 +28,17 @@ public class Node {
 	public Node   getParent() { return parent; }
 	public String getKey()    { return key; }
 
+	/**
+ 	 * Change the value of the key.
+ 	 *
+ 	 * Use diligently. Changing the key may disrupt the
+ 	 * parsing process.
+ 	 *
+ 	 * @param val new value of the key
+ 	 */
+	public void setKey( String val) { key = val; }
+
+
 	public void addChild(String key, String value) {
 		addChild( new Node( key, value) );
 	}
@@ -44,7 +55,7 @@ public class Node {
 	 *
  	 * All children are removed from the passed node.
 	 */ 
-	void addChildren( Node n) {
+	public void  addChildren( Node n) {
 
 		Vector children = n.children;
 		n.removeChildren();
@@ -64,6 +75,13 @@ public class Node {
 
 	/**
  	 * Get child Node by key value.
+ 	 *
+ 	 * If more than one child node has the given key value, 
+ 	 * this will return the first child node. In order to access
+ 	 * the other child nodes with the same key, it is necessary
+ 	 * to iterate through the child list.
+ 	 *
+ 	 * @param key key value to search for.
  	 */
 	public Node get(String key ) {
 		for ( int i =0; i < children.size(); ++i ) {

@@ -276,10 +276,24 @@ public class BasicParser {
 	}
 
 
+	/**
+	 * Make a dynamic call to a rule.
+	 *
+ 	 * Override of {@link #s(String,State,boolean,boolean) s(String,State,boolean,boolean)}, with
+ 	 * addition of parsed values to parse tree. 
+ 	 */
 	protected boolean s( String method, State oldState, boolean doThrow ) throws ParseException {
 		return s( method, oldState, doThrow, false ); 
 	}
 
+
+	/**
+	 * Make a dynamic call to a rule.
+	 *
+ 	 * Override of {@link #s(String,State,boolean,boolean) s(String,State,boolean,boolean)}, with
+ 	 * throwing on error disabled and
+ 	 * addition of parsed values to parse tree. 
+ 	 */
 	protected boolean s( String method, State oldState ) throws
 			ParseException//, 
 			//NoSuchMethodException, 

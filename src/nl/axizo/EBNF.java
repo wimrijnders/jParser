@@ -108,12 +108,39 @@ public class EBNF extends BasicParser {
 		return true;
 	}
 
-	public boolean modifier(State state ) throws ParseException {
+	/**
+ 	 * Parse for Err modifier.
+ 	 *
+ 	 * TODO: This modifier is redundant. When parser works, it should be removed.
+ 	 */
+	public boolean modifier_Err(State state ) throws ParseException {
 		return 
-			parseString( "noWS", state ) || 
-			parseString( "skipWS", state ) || 
 			( parseString( "Err", state ) && parseCharset( plusminus_ch, state, true ) ); 
 	}
+
+	public boolean modifier_WS(State state ) throws ParseException {
+		if ( 
+			parseString( "noWS", state ) || 
+			parseString( "skipWS", state, true )
+		); 
+
+		state.getCurNode().collect();
+		return true;
+	}
+
+
+	public boolean modifier(State state ) throws ParseException {
+		if (	
+			s( "modifier_WS", state ) ||
+			s( "modifier_Err", state, true, true)
+		);
+
+		// replace this node with its children
+		state.setSkipCurrent( true );
+		
+		return true;
+	}
+
 
 	public boolean rule_modifier(State state ) throws ParseException {
 		return 
@@ -166,9 +193,6 @@ public class EBNF extends BasicParser {
 
 
 	public boolean statement(State state ) throws ParseException {
-		s( "modifier", state );
-		WS(state);
- 
 		s( "atomicstatement", state, true );
 
 		s( "except", state );
@@ -188,10 +212,13 @@ public class EBNF extends BasicParser {
 	}
 
 	public boolean statements(State state ) throws ParseException {
-
+		s( "modifier", state );
+		WS(state);
+ 
 		s( "alternative", state, true );
 
 		do WS(state); while(
+			s( "modifier", state ) ||
 			s( "alternative", state )
 		);
 
@@ -772,7 +799,7 @@ public class EBNF extends BasicParser {
 			state.getCurNode().set( "temp" ).set( "members" ).addChild( new Node( "member_pattern", member_value) );
 			n.setValue( "pattern" + counter );
 		}
-
+/*
 		res =  state.getCurNode().findNodes( "charset" );
 		for( int i = 0;  i < res.size(); ++i ) {
 			Node n = (Node) res.get(i);
@@ -782,6 +809,7 @@ public class EBNF extends BasicParser {
 			p.setValue( "parseCharset( " + n.getValue() + ", state )" ); 
 			p.removeChildren();
 		}
+*/
 	}
 
 
@@ -800,14 +828,125 @@ public class EBNF extends BasicParser {
 			n.setValue( replace( n.getValue(), "\\\\", "\\\\\\\\") );
 			//Okay, this sucks, but I will persevere
 			n.setValue( replace( n.getValue(), "\\\"", "\\\\\"") );
-
+/*
 			// Parent is a statement node. Replace parent with output code.
 			Node p = n.getParent();
 			p.setValue( "parseString( \"" + n.getValue() + "\", state )" ); 
 			p.removeChildren();
+*/
 		}
 	}
 
+	/**
+ 	 * Make internal rules for groups within rules.
+ 	 *
+ 	 * The body of a group is isolated and placed in its own internal
+ 	 * method. This method is then called from the original location
+ 	 * like any other rule.
+ 	 *
+ 	 * The intention is to simplify the handling of the generated code.
+ 	 */
+	private void translateGroups( State state ) {
+		Vector res =  state.getCurNode().findNodes( "group" );
+		int groupCount = 1;
+
+		for( int i = 0;  i < res.size(); ++i ) {
+			Node n = (Node) res.get(i);
+
+			String nodeName = "group" + groupCount;
+			groupCount++;
+
+			// Create a new rule node containing the child nodes of the
+			// group.
+			Node group = new Node("rule","");
+			group.set( "label", nodeName ); 
+			group.addChildren( n );
+
+			state.getCurNode().get("language").addChild(group);
+
+			// Replace group node with a new label node indicating a call to the 
+			// internal method
+			// Replace statement with call
+			n.setKey( "label" );
+			n.setValue( nodeName );
+			//n.removeChildren();
+		}
+	}
+
+	private void translateSingleStatement( State state ) {
+		Vector res =  state.getCurNode().findNodes( "statement" );
+
+		for( int i = 0;  i < res.size(); ++i ) {
+			Node n = (Node) res.get(i);
+			String repeat = "";
+
+			// Statement should contain single child of type
+			// label, charset or literal, and optionally
+			// a repeat postfix
+			if ( n.numChildren() == 2 ) {
+				if( n.get( "postfix" ) != null ) {
+					repeat = n.get("postfix").getValue();
+				}
+			} else if ( n.numChildren() != 1 ) continue;
+
+			// TODO: assert that statement and postfix have correct order at this point
+			Node child = n.get(0);
+
+			String call;
+			if ( "literal".equals( child.getKey() ) ) {
+				call = "parseString( \"" + child.getValue() + "\", state"; 
+			} else if ( "charset".equals( child.getKey() ) ) {
+				call = "parseCharset( " + child.getValue() + ", state"; 
+			} else if ( "label".equals( child.getKey() ) ) {
+				call = "s( \"" + child.getValue() + "\", state"; 
+			} else continue;
+
+			// TODO: add whitespace handling for following blocks
+			if ( !"".equals(repeat) ) {
+				if ( "?".equals( repeat ) ) {
+					// No problem, just don't throw
+					call += ");";
+				} else if ( "*".equals( repeat ) ) {
+					call = "do ; while (" + call  + ") );";
+				} else if ( "+".equals( repeat ) ) {
+					// Do first call separately with throw
+					call = call + ", true); do; while( " + call +") );";
+				}
+			}
+
+			// Replace statement with call
+			n.setKey( "call" );
+			n.setValue( call );
+			n.removeChildren();
+		}
+	}
+
+
+	private void setWSFlags(State state) {
+		handleWSFlags( state.getCurNode(), "skipWS" );
+	}
+
+
+	/**
+ 	 *  Set the proper WS mode in statement blocks.
+ 	 *
+ 	 *  This is an internal translation with the aim of
+ 	 *  easily  checking if implicit whitespace parsing is
+ 	 *  needed.
+ 	 */
+	private void handleWSFlags(Node node, String WSValue) {
+		for( int i = 0;  i < node.numChildren(); ++i ) {
+			Node n = node.get(i);
+
+			if ( "modifier_WS".equals(  n.getKey() )  ) {
+				WSValue = n.getValue();
+			} else if ( "alternative".equals(  n.getKey() ) ) {
+				n.setValue( WSValue );
+			}
+
+			handleWSFlags( n, WSValue);
+		}
+	}
 
 	/**
  	 * Perform translation steps on the nodes which were generated
@@ -823,13 +962,17 @@ public class EBNF extends BasicParser {
 	private void translate( State state ) {
 		Vector res;
 
+		setWSFlags(state);
+
 		translateCharsets( state);
 		translateLiterals( state);
 
+		translateGroups( state );
+		translateSingleStatement( state );
 		////////////////////
 		// Labels
 		////////////////////
-
+/*
 		res =  state.getCurNode().findNodes( "label" );
 		for( int i = 0;  i < res.size(); ++i ) {
 			Node n = (Node) res.get(i);
@@ -843,10 +986,11 @@ public class EBNF extends BasicParser {
 				p.removeChildren();
 			}
 		}
-
+*/
 		////////////////////
 		// Alternatives
 		////////////////////
+/*		
 		res =  state.getCurNode().findNodes( "alternative" );
 
 		for( int i = 0;  i < res.size(); ++i ) {
@@ -895,6 +1039,7 @@ public class EBNF extends BasicParser {
 				}
 			}
 		}
+*/
 	}
 
 
@@ -917,8 +1062,8 @@ public class EBNF extends BasicParser {
 				+ " *\n"
 				+ " * Editing it is a bad idea.\n"
 				+ " */\n"
-				+ "import nl.axizo.parser.*\n"
-				+ "import java.util.regex.*\n"
+				+ "import nl.axizo.parser.*;\n"
+				+ "import java.util.regex.*;\n"
 				+ "\n"
 				+ "\n"
 				+ "public class " + className + " extends BasicParser {\n\n";
@@ -941,7 +1086,7 @@ public class EBNF extends BasicParser {
 
 		// Generate methods
 		Vector rules = root.findNodes("rule");
-		for( int i = 0;  i < num; ++i ) {
+		for( int i = 0;  i < rules.size(); ++i ) {
 			Node rule = (Node) rules.get(i);
 			output += generateMethod( rule );
 		}
@@ -972,6 +1117,11 @@ public class EBNF extends BasicParser {
 	}
 
 
+	/**
+ 	 * Show the final status of the parsing.
+ 	 *
+ 	 * Errors are shown in the error output in this step.
+ 	 */
 	private void showFinalResult( State state ) {
 		try {
 			if ( state.eol() ) {
@@ -987,6 +1137,7 @@ public class EBNF extends BasicParser {
 			error( "Exception: " + e.toString() );
 		}
 	}
+
 
 	public static void main(String[] argv) 
 		throws NoSuchMethodException, IllegalAccessException {
