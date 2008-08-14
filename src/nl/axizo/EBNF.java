@@ -837,39 +837,82 @@ public class EBNF extends BasicParser {
 		}
 	}
 
+
 	/**
- 	 * Make internal rules for groups within rules.
+ 	 * Move a block of statements to a separate rule.
+ 	 *
+ 	 * This is used to simplify the handling of the generated code.
+ 	 * Blocks of nested statements and the body of repeat statements
+ 	 * are handled this way.
  	 *
  	 * The body of a group is isolated and placed in its own internal
  	 * method. This method is then called from the original location
  	 * like any other rule.
  	 *
+ 	 * @param n node containing statement block to move
+ 	 * @param root root node of parse tree
+ 	 * @param nodeName name to use for newly created rule node.
+ 	 */
+	private void isolateRule( Node n, Node root, String nodeName ) {
+		// Create a new rule node containing the child nodes of the
+		// group.
+		Node group = new Node("rule","");
+		group.set( "label", nodeName ); 
+		group.addChildren( n );
+
+		root.get("language").addChild(group);
+
+		// Replace group node with a new label node indicating a call to the 
+		// internal method
+		// Replace statement with call
+		n.setKey( "label" );
+		n.setValue( nodeName );
+	}
+
+	/**
+ 	 * Make internal rules for groups within rules.
+ 	 *
  	 * The intention is to simplify the handling of the generated code.
  	 */
 	private void translateGroups( State state ) {
 		Vector res =  state.getCurNode().findNodes( "group" );
-		int groupCount = 1;
+		int count = 1;
 
 		for( int i = 0;  i < res.size(); ++i ) {
 			Node n = (Node) res.get(i);
 
-			String nodeName = "group" + groupCount;
-			groupCount++;
+			String nodeName = "group" + count;
+			count++;
 
 			// Create a new rule node containing the child nodes of the
 			// group.
-			Node group = new Node("rule","");
-			group.set( "label", nodeName ); 
-			group.addChildren( n );
+			isolateRule( n, state.getCurNode(), nodeName );
+		}
+	}
 
-			state.getCurNode().get("language").addChild(group);
 
-			// Replace group node with a new label node indicating a call to the 
-			// internal method
-			// Replace statement with call
-			n.setKey( "label" );
-			n.setValue( nodeName );
-			//n.removeChildren();
+	/**
+ 	 * Make internal rules for repeat blocks within rules.
+ 	 *
+ 	 * The intention is to simplify the handling of the generated code.
+ 	 */
+	private void translateRepeats( State state ) {
+		Vector res =  state.getCurNode().findNodes( "repeat" );
+		int count = 1;
+
+		for( int i = 0;  i < res.size(); ++i ) {
+			Node n = (Node) res.get(i);
+
+			String nodeName = "repeat" + count;
+			count++;
+
+			// Create a new rule node containing the child nodes of the
+			// repeat block.
+			isolateRule( n, state.getCurNode(), nodeName );
+
+			// Add a postfix so that calls to this internal rule
+			// will be repeated
+			n.getParent().addChild( "postfix", "*");
 		}
 	}
 
@@ -907,7 +950,7 @@ public class EBNF extends BasicParser {
 					// No problem, just don't throw
 					call += ");";
 				} else if ( "*".equals( repeat ) ) {
-					call = "do ; while (" + call  + ") );";
+					call = "do ; while (" + call  + ")";
 				} else if ( "+".equals( repeat ) ) {
 					// Do first call separately with throw
 					call = call + ", true); do; while( " + call +") );";
@@ -968,6 +1011,7 @@ public class EBNF extends BasicParser {
 		translateLiterals( state);
 
 		translateGroups( state );
+		translateRepeats( state );
 		translateSingleStatement( state );
 		////////////////////
 		// Labels
@@ -1102,6 +1146,81 @@ public class EBNF extends BasicParser {
 	}
 
 
+	private String generateAlternative( Node n, boolean doWS ) {
+		String out = "";
+
+		if ( doWS ) {
+			out += "\t\tWS(state);\n";
+		}
+
+		if ( n.numChildren() == 1 ) {
+			out += "\t\t" + n.get("call").getValue() + ", true );\n";
+		} else {
+			// more than one child
+			out += "\t\tif (\n";
+
+			for( int i = 0; i < n.numChildren(); ++ i ) {
+				Node c = n.get( i );
+
+				if ( !"call".equals( c.getKey() ) ) {
+					warning( "non-call found while generating alternative" );
+					continue;
+				}
+
+				if ( i != 0 ) {
+					out += "\t\t || ";
+				} else {
+					out += "\t\t    ";
+				}
+
+				out += c.getValue();
+
+				// Only final statement in if-block gets to throw
+				boolean doThrow = ( i == n.numChildren() -1 );
+
+				if ( doThrow ) {
+					out += ", true";
+				}
+
+				out += " )\n";
+			}
+
+
+			out += "\t\t);\n";
+		}
+
+		return out;
+	}
+
+	private String generateStatements( Node n ) {
+		Node body = n.get("statements");
+		String out = "";
+		boolean isFirst = true;
+
+		out += "\t\t// Generated parsing code\n";
+		for( int i = 0; i < body.numChildren(); ++ i ) {
+			Node c = body.get( i );
+
+			if ( !"alternative".equals( c.getKey() ) ) {
+				//WS modifier is allowed; skip warning in this case
+				if ( !"modifier_WS".equals( c.getKey() ) ) {
+					warning( "non-alternative found while generating statements"
+							+ " for rule " + n.get("label").getValue() );
+				}
+				continue;
+			}
+
+			// Never do WS for first call in block
+			boolean doWS = "skipWS".equals( c.getValue() ) && !isFirst;
+
+			out += generateAlternative( c, doWS );
+			isFirst = false;
+		}
+
+		return out;
+	}
+
+
 	/**
  	 * Generate method code from given Node.
  	 */
@@ -1109,9 +1228,9 @@ public class EBNF extends BasicParser {
 		String name   = rule.get("label").getValue();
 		String output = "";
 
-		output += "\tpublic boolean " + name + "(State state ) throws ParseException {\n"
-				+ "\t\t// Content goes here\n"
-				+ "\t}\n\n";
+		output += "\tpublic boolean " + name + "(State state ) throws ParseException {\n\n";
+		output += generateStatements( rule );
+		output += "\n\t\treturn true;\n\t}\n\n";
 
 		return output;
 	}
@@ -1143,6 +1262,7 @@ public class EBNF extends BasicParser {
 		throws NoSuchMethodException, IllegalAccessException {
 
 		EBNF parser = new EBNF( argv[0] );
+		//parser.setTraceLevel( TRACE );
 		parser.setFirstTwoLines(true);
 		parser.parse();
 	}

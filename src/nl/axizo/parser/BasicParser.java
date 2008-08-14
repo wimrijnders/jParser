@@ -15,7 +15,7 @@ import java.util.regex.*;
 import java.util.Vector;
 
 public class BasicParser {
-	private static final int TRACE   = 1;
+	protected static final int TRACE   = 1;
 	private static final int INFO    = 2;
 	private static final int WARNING = 3;
 	private static final int ERROR   = 4;
