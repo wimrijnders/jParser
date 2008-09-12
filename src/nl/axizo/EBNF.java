@@ -948,12 +948,14 @@ public class EBNF extends BasicParser {
 			if ( !"".equals(repeat) ) {
 				if ( "?".equals( repeat ) ) {
 					// No problem, just don't throw
-					call += ");";
+					//call += ");";
 				} else if ( "*".equals( repeat ) ) {
-					call = "do ; while (" + call  + ")";
+					// Terminating brace gets added during generation
+					call = "do; while (" + call;
 				} else if ( "+".equals( repeat ) ) {
 					// Do first call separately with throw
-					call = call + ", true); do; while( " + call +") );";
+					// Terminating brace gets added during generation
+					call = call + ", true); do; while( " + call;
 				}
 			}
 
@@ -1154,7 +1156,18 @@ public class EBNF extends BasicParser {
 		}
 
 		if ( n.numChildren() == 1 ) {
-			out += "\t\t" + n.get("call").getValue() + ", true );\n";
+			String value =  n.get("call").getValue();
+			boolean isWhileLoop = ( value.indexOf( "do; while" ) != -1 );
+
+			// Special case for loop, need to take the endbrace into
+			// account. This is sort of dirty. TODO: examine better solution
+			if ( isWhileLoop ) {
+				// while-loop 
+				out += "\t\t" + value + ", true ));\n";
+			} else {
+				// normal statement
+				out += "\t\t" + value + ", true );\n";
+			}
 		} else {
 			// more than one child
 			out += "\t\tif (\n";
