@@ -56,6 +56,7 @@ public class Util {
  	 * Methods  in derived classes which reside in other packages, need
  	 * to be declared public for this to work.
  	 *
+ 	 * @param caller object on which to dynamically call method
  	 * @param method name of method to call
  	 * @param state state information of current call.
 	 * @see <a href="http://www.rgagnon.com/javadetails/java-0031.html">Source</a>
@@ -88,12 +89,19 @@ public class Util {
 	 * intentionally chosen short (one letter), because this call appears often in the
 	 * generated code, and we want to keep the latter readable.
 	 *
+ 	 * @param caller object on which to dynamically call method
 	 * @param method   Name of method to call
 	 * @param oldState Parse state of the calling method
 	 * @param doThrow  If true, throw a ParseException if parsing fails. Default is false.
 	 * @param ignore   If true, do not save parsed content to parse tree. Default is false.
 	 */
-	static boolean s( Object caller, String method, State oldState, boolean doThrow, boolean ignore ) throws 
+	static boolean s( 
+		Object caller, 
+		String method, 
+		State oldState, 
+		boolean doThrow, 
+		boolean ignore 
+	) throws 
 			ParseException//, 
 			//NoSuchMethodException, 
 			//IllegalAccessException 
@@ -137,36 +145,6 @@ public class Util {
 		return ret;
 	}
 
-
-	/**
-	 * Make a dynamic call to a rule.
-	 *
- 	 * Override of {@link #s(String,State,boolean,boolean) s(String,State,boolean,boolean)}, with
- 	 * addition of parsed values to parse tree. 
- 	 */
-/*
-	protected boolean s( String method, State oldState, boolean doThrow ) throws ParseException {
-		return s( method, oldState, doThrow, false ); 
-	}
-*/
-
-
-	/**
-	 * Make a dynamic call to a rule.
-	 *
- 	 * Override of {@link #s(String,State,boolean,boolean) s(String,State,boolean,boolean)}, with
- 	 * throwing on error disabled and
- 	 * addition of parsed values to parse tree. 
- 	 */
-/*
-	protected boolean s( String method, State oldState ) throws
-			ParseException//, 
-			//NoSuchMethodException, 
-			//IllegalAccessException 
-	{
-		return s( method, oldState, false, false ); 
-	}
-*/
 
 
 	//////////////////////////////////////////////

@@ -229,8 +229,7 @@ public class BasicParser {
 	/** 
  	 * Determine if given position in buffer is at the end of the buffer.
  	 * 
- 	 * @return: true if and end of buffer, false otherwise.
- 	 * 
+ 	 * @return true if and end of buffer, false otherwise.
  	 */
 	public boolean eol(int curpos) throws ParseException {
 		if ( curpos > buffer.length() ) { throw new ParseException(); }

@@ -9,7 +9,6 @@ import nl.axizo.parser.Node;
 import nl.axizo.parser.Util;
 import java.io.IOException;
 import java.util.Vector;
-//import java.util.regex.*;
 
 /**
  *  Generates output from a parse tree.

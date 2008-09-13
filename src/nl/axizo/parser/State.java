@@ -50,13 +50,7 @@ public class State {
 		matched( value, key, false);
 	}
 
-/*
-	public boolean eol() throws ParseException {
-		if ( curpos > buffer.length() ) { throw new ParseException(); }
 
-		return curpos == buffer.length();
-	}
-*/
 	public void setError( State state, String method ) {
 		if ( state.getErrorPos() != -1 ) {
 			errpos = state.getErrorPos();
