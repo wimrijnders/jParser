@@ -10,19 +10,13 @@
 package nl.axizo.parser;
 
 import java.io.*;
-import java.lang.reflect.*;
+import java.lang.reflect.Method;
+import java.lang.reflect.InvocationTargetException;
 import java.util.regex.*;
 import java.util.Vector;
 
 public class BasicParser {
-	protected static final int TRACE   = 1;
-	private static final int INFO    = 2;
-	private static final int WARNING = 3;
-	private static final int ERROR   = 4;
-
-	private static boolean showDoneOutput    = false;
 	private static boolean showFirstTwoLines = false;
-	private static int     traceLevel     = INFO;
 	private static int     seqNr          = 1;
 
 	private String buffer =  "" ;
@@ -32,8 +26,8 @@ public class BasicParser {
 		//trace( "curpos: " + curLine( 0 ) );
 	}
 
-	public static void setDoneOutput   ( boolean val ) { showDoneOutput = val; }
-	public static void setTraceLevel   ( int     val ) { traceLevel     = val; }
+	public static void setDoneOutput   ( boolean val ) { Util.setDoneOutput( val); }
+	public static void setTraceLevel   ( int     val ) { Util.setTraceLevel( val); }
 	public static void setFirstTwoLines( boolean val ) { showFirstTwoLines = val; }
 
 	public static boolean getFirstTwoLines() { return showFirstTwoLines; }
@@ -102,121 +96,11 @@ public class BasicParser {
 		return ret;
 	}
 
-	protected static void out(int traceLevel, String str) {
-		if ( traceLevel >= BasicParser.traceLevel ) {
-			System.out.println( str );	
-		}
-	}
+	protected static void trace  (String str) { Util.trace( str); }
+	protected static void info   (String str) { Util.info( str); }
+	protected static void warning(String str) { Util.warning( str); }
+	protected static void error  (String str) { Util.error( str); }
 
-	protected static void trace  (String str) { out( TRACE  , str); }
-	protected static void info   (String str) { out( INFO   , str); }
-	protected static void warning(String str) { out( WARNING, str); }
-	protected static void error  (String str) { out( ERROR  , str); }
-
-	protected class State {
-		private int     depth       = 0;
-		private int     curpos      = 0;
-		private int     errpos      = -1;
-		private String  errmethod   = null;
-		private Node    curNode;
-		private boolean skipCurrent = false;
-
-		public State() {
-			curNode = new Node();
-		}
-
-		public State(int curpos, String name, int depth ) {
-			this.depth = depth;
-			this.curpos = curpos;
-			curNode = new Node( name, "");
-		}
-
-		public State copy( String name ) {
-			return new State( curpos, name, depth + 1 );
-		}
-
-		public void success( State state, boolean ignore ) {
-			curpos = state.curpos;
-
-			if ( !ignore) {
-				if ( state.getSkipCurrent() ) {
-					// Store the children of this node instead of the Node itself.
-					curNode.addChildren( state.curNode );
-				} else {
-					curNode.addChild( state.curNode );
-				}
-			}
-		}
-
-		public void matched( String value, String key, boolean ignore ) {
-			curpos += value.length();
-			if ( !ignore ) {
-				curNode.addChild( key, value);
-			}
-		}
-
-		public void matched( String value, String key ) {
-			matched( value, key, false);
-		}
-
-		public boolean eol() throws ParseException {
-			if ( curpos > buffer.length() ) { throw new ParseException(); }
-
-			return curpos == buffer.length();
-		}
-
-		public void setError( State state, String method ) {
-			if ( state.getErrorPos() != -1 ) {
-				errpos = state.getErrorPos();
-				errmethod = state.getErrorMethod();
-			} else {
-				errpos = state.getCurpos();
-				errmethod = method;
-			}
-		}
-
-		public int    getCurpos()      { return curpos; }
-		public Node   getCurNode()     { return curNode; }
-		public int    getErrorPos()    { return errpos; };
-		public String getErrorMethod() { return errmethod; }
-		public int    getDepth()       { return depth; }
-
-		public void setSkipCurrent(boolean val) { skipCurrent = val; }
-		public boolean getSkipCurrent() { return skipCurrent; }
-	}
-
-
-	/**
- 	 * Make a dynamic call to given method.
- 	 * 	
-	 * Reflection is used internally to make the call.
-	 *
- 	 * Methods  in derived classes which reside in other packages, need
- 	 * to be declared public for this to work.
- 	 *
- 	 * @param method name of method to call
- 	 * @param state state information of current call.
-	 * @see <a href="http://www.rgagnon.com/javadetails/java-0031.html">Source</a>
-	 */
-	protected boolean dynamicCall( String method, State state ) throws 
-			ParseException,
-			NoSuchMethodException, 
-			IllegalAccessException,
-			InvocationTargetException
-	{
-		Class params[] = new Class[1];
-		Object paramsObj[] = new Object[1];
-
-		params[0] = state.getClass();
-		paramsObj[0] = state;
-
-		// get the method
-		Method thisMethod = getClass().getDeclaredMethod( method, params);
-		// call the method
-		Boolean ret = (Boolean) thisMethod.invoke( this , paramsObj);
-
-		return ret.booleanValue();
-	} 
 
 
 	/**
@@ -236,43 +120,7 @@ public class BasicParser {
 			//NoSuchMethodException, 
 			//IllegalAccessException 
 	{
-		// TODO: Handle NoSuchMethodException and IllegalAccessException properly
-
-		State state = oldState.copy( method );
-		boolean ret = false;
-
-		try {
-			ret = dynamicCall( method, state);
-
-			if ( ret ) {
-				oldState.success( state, ignore );
-				if ( showDoneOutput ) {
-					info( "Done" + Util.makeTab( state.getDepth(), " ") + method );
-				}
-			}
-		} catch ( InvocationTargetException e ) {
-			if ( e.getCause() instanceof ParseException ) {
-				if ( doThrow ) {
-					oldState.setError( state, method );
-					throw (ParseException) e.getCause();
-				}
-			} else {
-				error( 
-					"s() InvocationTargetException method " + method + "." +
-					" Wrapped Exception: " + e.getCause().toString() 
-				);
-				e.getCause().printStackTrace();
-			}
-		} catch ( Exception e ) {
-			error( "s() Exception: " + e.toString() );
-			e.getCause().printStackTrace();
-		}
-
-		if ( !ret ) {
-			oldState.setError( state, method );
-			if ( doThrow ) throw new ParseException();
-		}
-		return ret;
+		return Util.s( this, method, oldState, doThrow, ignore );
 	}
 
 
@@ -283,7 +131,7 @@ public class BasicParser {
  	 * addition of parsed values to parse tree. 
  	 */
 	protected boolean s( String method, State oldState, boolean doThrow ) throws ParseException {
-		return s( method, oldState, doThrow, false ); 
+		return Util.s( this, method, oldState, doThrow, false ); 
 	}
 
 
@@ -299,7 +147,7 @@ public class BasicParser {
 			//NoSuchMethodException, 
 			//IllegalAccessException 
 	{
-		return s( method, oldState, false, false ); 
+		return Util.s( this, method, oldState, false, false ); 
 	}
 
 
@@ -378,5 +226,16 @@ public class BasicParser {
 		}
 	}
 
+	/** 
+ 	 * Determine if given position in buffer is at the end of the buffer.
+ 	 * 
+ 	 * @return: true if and end of buffer, false otherwise.
+ 	 * 
+ 	 */
+	public boolean eol(int curpos) throws ParseException {
+		if ( curpos > buffer.length() ) { throw new ParseException(); }
+
+		return curpos == buffer.length();
+	}
 }
 

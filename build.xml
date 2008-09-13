@@ -7,6 +7,7 @@
 	<property name="build" location="build"/>
 	<property name="dist"  location="dist"/>
 	<property name="doc"   location="doc"/>
+	<property name="test"  location="test"/>
 
 	<target name="init">
 		<!-- Create the time stamp -->
@@ -14,6 +15,7 @@
 		
 		<mkdir dir="${build}"/>
 		<mkdir dir="${dist}/lib"/>
+		<mkdir dir="${test}"/>
 	</target>
 
 	<target name="compile" depends="init" >
@@ -25,8 +27,13 @@
 	</target>
 
 	<target name="run" depends="build">
-		<java classname="nl.axizo.EBNF">
-			<arg value="ebnf.ebnf"/>
+		<java 
+				classname="nl.axizo.EBNFInitial" 
+				dir="${test}"
+				fork="true"
+		>
+			<!-- up-dir needed because we start in a subdir -->
+			<arg value="../ebnf.ebnf"/>
 			<classpath>
 				<pathelement location="${dist}/lib/parser.jar"/>
 			</classpath>
@@ -42,6 +49,30 @@
 		</javadoc>
 	</target>
 
+	<target name="test" depends="run" >
+		<!-- Compile the generated parser -->	
+		<javac srcdir="${test}" destdir="${test}">
+			<classpath>
+				<pathelement location="${dist}/lib/parser.jar"/>
+			</classpath>
+		</javac>
+
+		<!-- TODO: Following part not completed yet -->
+		<!-- And run the compiled result -->
+		<java 
+				classname="nl.axizo.EBNF" 
+				dir="${test}"
+				fork="true"
+		>
+			<!-- up-dir needed because we start in a subdir -->
+			<arg value="../ebnf.ebnf"/>
+			<classpath>
+				<pathelement location="${dist}/lib/parser.jar"/>
+			</classpath>
+		</java>
+	</target>
+		
+
 	<target name="clean" >
 	<delete>
 		<fileset dir="${build}">
@@ -51,6 +82,9 @@
 			<include name="**/*" />
 		</fileset>
 		<fileset dir="${doc}">
+			<include name="**/*" />
+		</fileset>
+		<fileset dir="${test}">
 			<include name="**/*" />
 		</fileset>
 	</delete>

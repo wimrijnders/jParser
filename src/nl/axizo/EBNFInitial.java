@@ -1,16 +1,20 @@
 /**
  * $Id$
  *
+ * Initial, handcoded version of EBNF Parser.
+ * Name was changed so that there will be no conflict with generated
+ * output.
  */
 package nl.axizo;
 
 import nl.axizo.parser.*;
-import java.util.regex.*;
+import nl.axizo.EBNF.*;
+import java.util.regex.Pattern;
 import java.util.Vector;
 import java.io.IOException;
 
 
-public class EBNF extends BasicParser {
+public class EBNFInitial extends BasicParser {
 	private Pattern whitespace;
 	private Pattern eol;
 	private Pattern ts;
@@ -27,7 +31,7 @@ public class EBNF extends BasicParser {
 	private Pattern action_ch;
 	private Pattern string_ch;
 
-	public EBNF( String filename ) {
+	public EBNFInitial( String filename ) {
 		super( filename );
 
 		whitespace      = Pattern.compile( "[ \r\n\t]+");
@@ -714,14 +718,15 @@ public class EBNF extends BasicParser {
 	}
 
 
-	protected void parse()
+	protected State parse()
 		throws NoSuchMethodException, IllegalAccessException {
 
 		State state = new State();
 
 		// Parse according to rules
 		try {
-			while ( !state.eol() ) {
+			while ( !eol(state.getCurpos() ) ) {
+//			while ( !state.eol() ) {
 				WS(state);
 
 				if ( !s( "language", state ) ) break;
@@ -730,6 +735,10 @@ public class EBNF extends BasicParser {
 			error( "Exception: " + e.toString() );
 		}
 
+
+		return state;
+
+/*
 		// Do node translations
 		translate( state );
 
@@ -739,352 +748,6 @@ public class EBNF extends BasicParser {
 		// Exit
 		saveNodes( state );
 		showFinalResult(state);
-	}
-
-	protected static String replace(
-	    String aInput, String aOldPattern, String aNewPattern
-  	){
-    	final Pattern pattern = Pattern.compile( "["+ aOldPattern + "]" );
-	    final Matcher matcher = pattern.matcher( aInput );
-	    return matcher.replaceAll( aNewPattern );
-	}
-
-
-
-	/**
- 	 * Perform translation steps on charset nodes.
-	 */
-	private void translateCharsets( State state ) {
-
-		// Translate special characters in charset ranges to the java regexp equivalents
-		Vector res =  state.getCurNode().findNodes( "range" );
-		for( int i = 0;  i < res.size(); ++i ) {
-			Node n = (Node) res.get(i);
-
-			String val = n.getValue();
-
-			if ( val.equals( "\\-" ) || val.equals( "\\)" ) || val.equals( "\\]" ) || val.equals( "\"" ) || val.equals("'") ) {
-				n.setValue( "\\" + val );
-			} else if ( val.equals( "\\\\" ) ) {
-				n.setValue( "\\\\" + val );
-			} else if ( val.equals( "\\~" ) ) {
-				n.setValue( "~" );
-			} else if ( val.equals( "\\all" ) ) {
-				n.setValue( "\\\\x00-\\\\xFF");
-			}
-		}
-
-
-		// translate the charset 'except' clause to the java equivalent
-		res =  state.getCurNode().findNodes( "except_charset" );
-		for( int i = 0;  i < res.size(); ++i ) {
-			Node n = (Node) res.get(i);
-
-			n.collect();
-			n.setValue( "&&[^" + n.getValue() + "]" );
-		}
-
-
-		// Create java code for the charsets
-		res =  state.getCurNode().findNodes( "charset" );
-		for( int i = 0;  i < res.size(); ++i ) {
-			Node n = (Node) res.get(i);
-			int counter = i + 1;	
-
-			n.collect();
-			String ctor_value = "\t\tpattern" + counter + " = Pattern.compile( \"[" + n.getValue() + "]\");\n";
-			String member_value = "\tprivate Pattern pattern" + counter + ";\n";
-
-			state.getCurNode().set( "temp" ).set( "ctor" ).addChild( new Node( "init_pattern", ctor_value) );
-			state.getCurNode().set( "temp" ).set( "members" ).addChild( new Node( "member_pattern", member_value) );
-			n.setValue( "pattern" + counter );
-		}
-/*
-		res =  state.getCurNode().findNodes( "charset" );
-		for( int i = 0;  i < res.size(); ++i ) {
-			Node n = (Node) res.get(i);
-
-			// Parent is a statement node. Replace parent with output code.
-			Node p = n.getParent();
-			p.setValue( "parseCharset( " + n.getValue() + ", state )" ); 
-			p.removeChildren();
-		}
-*/
-	}
-
-
-	/**
- 	 * Perform translation steps on literal nodes.
-	 */
-	private void translateLiterals( State state ) {
-		Vector res;
-
-		res =  state.getCurNode().findNodes( "literal" );
-		for( int i = 0;  i < res.size(); ++i ) {
-			Node n = (Node) res.get(i);
-		
-			// Translate special characters in literal
-			// following replaces a single backslash with a double. No, really
-			n.setValue( replace( n.getValue(), "\\\\", "\\\\\\\\") );
-			//Okay, this sucks, but I will persevere
-			n.setValue( replace( n.getValue(), "\\\"", "\\\\\"") );
-/*
-			// Parent is a statement node. Replace parent with output code.
-			Node p = n.getParent();
-			p.setValue( "parseString( \"" + n.getValue() + "\", state )" ); 
-			p.removeChildren();
-*/
-		}
-	}
-
-
-	/**
- 	 * Move a block of statements to a separate rule.
- 	 *
- 	 * This is used to simplify the handling of the generated code.
- 	 * Blocks of nested statements and the body of repeat statements
- 	 * are handled this way.
- 	 *
- 	 * The body of a group is isolated and placed in its own internal
- 	 * method. This method is then called from the original location
- 	 * like any other rule.
- 	 *
- 	 * @param n node containing statement block to move
- 	 * @param root root node of parse tree
- 	 * @param nodeName name to use for newly created rule node.
- 	 */
-	private void isolateRule( Node n, Node root, String nodeName ) {
-		// Create a new rule node containing the child nodes of the
-		// group.
-		Node group = new Node("rule","");
-		group.set( "label", nodeName ); 
-		group.addChildren( n );
-
-		root.get("language").addChild(group);
-
-		// Replace group node with a new label node indicating a call to the 
-		// internal method
-		// Replace statement with call
-		n.setKey( "label" );
-		n.setValue( nodeName );
-	}
-
-	/**
- 	 * Make internal rules for groups within rules.
- 	 *
- 	 * The intention is to simplify the handling of the generated code.
- 	 */
-	private void translateGroups( State state ) {
-		Vector res =  state.getCurNode().findNodes( "group" );
-		int count = 1;
-
-		for( int i = 0;  i < res.size(); ++i ) {
-			Node n = (Node) res.get(i);
-
-			String nodeName = "group" + count;
-			count++;
-
-			// Create a new rule node containing the child nodes of the
-			// group.
-			isolateRule( n, state.getCurNode(), nodeName );
-		}
-	}
-
-
-	/**
- 	 * Make internal rules for repeat blocks within rules.
- 	 *
- 	 * The intention is to simplify the handling of the generated code.
- 	 */
-	private void translateRepeats( State state ) {
-		Vector res =  state.getCurNode().findNodes( "repeat" );
-		int count = 1;
-
-		for( int i = 0;  i < res.size(); ++i ) {
-			Node n = (Node) res.get(i);
-
-			String nodeName = "repeat" + count;
-			count++;
-
-			// Create a new rule node containing the child nodes of the
-			// repeat block.
-			isolateRule( n, state.getCurNode(), nodeName );
-
-			// Add a postfix so that calls to this internal rule
-			// will be repeated
-			n.getParent().addChild( "postfix", "*");
-		}
-	}
-
-	private void translateSingleStatement( State state ) {
-		Vector res =  state.getCurNode().findNodes( "statement" );
-
-		for( int i = 0;  i < res.size(); ++i ) {
-			Node n = (Node) res.get(i);
-			String repeat = "";
-
-			// Statement should contain single child of type
-			// label, charset or literal, and optionally
-			// a repeat postfix
-			if ( n.numChildren() == 2 ) {
-				if( n.get( "postfix" ) != null ) {
-					repeat = n.get("postfix").getValue();
-				}
-			} else if ( n.numChildren() != 1 ) continue;
-
-			// TODO: assert that statement and postfix have correct order at this point
-			Node child = n.get(0);
-
-			String call;
-			if ( "literal".equals( child.getKey() ) ) {
-				call = "parseString( \"" + child.getValue() + "\", state"; 
-			} else if ( "charset".equals( child.getKey() ) ) {
-				call = "parseCharset( " + child.getValue() + ", state"; 
-			} else if ( "label".equals( child.getKey() ) ) {
-				call = "s( \"" + child.getValue() + "\", state"; 
-			} else continue;
-
-			// TODO: add whitespace handling for following blocks
-			if ( !"".equals(repeat) ) {
-				if ( "?".equals( repeat ) ) {
-					// No problem, just don't throw
-					//call += ");";
-				} else if ( "*".equals( repeat ) ) {
-					// Terminating brace gets added during generation
-					call = "do; while (" + call;
-				} else if ( "+".equals( repeat ) ) {
-					// Do first call separately with throw
-					// Terminating brace gets added during generation
-					call = call + ", true); do; while( " + call;
-				}
-			}
-
-			// Replace statement with call
-			n.setKey( "call" );
-			n.setValue( call );
-			n.removeChildren();
-		}
-	}
-
-
-	private void setWSFlags(State state) {
-		handleWSFlags( state.getCurNode(), "skipWS" );
-	}
-
-
-	/**
- 	 *  Set the proper WS mode in statement blocks.
- 	 *
- 	 *  This is an internal translation with the aim of
- 	 *  easily  checking if implicit whitespace parsing is
- 	 *  needed.
- 	 */
-	private void handleWSFlags(Node node, String WSValue) {
-		for( int i = 0;  i < node.numChildren(); ++i ) {
-			Node n = node.get(i);
-
-			if ( "modifier_WS".equals(  n.getKey() )  ) {
-				WSValue = n.getValue();
-			} else if ( "alternative".equals(  n.getKey() ) ) {
-				n.setValue( WSValue );
-			}
-
-			handleWSFlags( n, WSValue);
-		}
-	}
-
-	/**
- 	 * Perform translation steps on the nodes which were generated
- 	 * after a succesfull parse.
- 	 *
- 	 * <p><pre>
-	 * <b>TODO:</b> 
-	 *
-	 * - Add whitespace handling
-	 * - Need to sort out the final two optional parameters.
-	 * </pre></p>
-	 */
-	private void translate( State state ) {
-		Vector res;
-
-		setWSFlags(state);
-
-		translateCharsets( state);
-		translateLiterals( state);
-
-		translateGroups( state );
-		translateRepeats( state );
-		translateSingleStatement( state );
-		////////////////////
-		// Labels
-		////////////////////
-/*
-		res =  state.getCurNode().findNodes( "label" );
-		for( int i = 0;  i < res.size(); ++i ) {
-			Node n = (Node) res.get(i);
-
-			// Only handle parent nodes which are statements.
-			Node p = n.getParent();
-
-			if ( p.getKey().equals( "statement" ) ) {			
-				// Replace parent with output code.
-				p.setValue( "s( \"" + n.getValue() + "\", state )" ); 
-				p.removeChildren();
-			}
-		}
-*/
-		////////////////////
-		// Alternatives
-		////////////////////
-/*		
-		res =  state.getCurNode().findNodes( "alternative" );
-
-		for( int i = 0;  i < res.size(); ++i ) {
-			Node n = (Node) res.get(i);
-
-			// Alternatives with single children translate
-			// directly to statement.
-			if ( n.numChildren() == 1 ) {
-				// Child must be a statement with no children
-				Node c = n.get( "statement" );
-				if ( c != null && c.numChildren() == 0 ) {
-					n.setValue( c.getValue() + ";" );
-					n.removeChildren();
-				}
-			}			
-			else if ( n.numChildren() > 1 ) {
-				// If all children are statements, collect
-				// in an encompasing if()
-				boolean allStatements = true;
-				for( int j = 0;  j < n.numChildren(); ++j ) {
-					Node c = (Node) n.get(j);
-					if ( !"statement".equals( c.getKey() ) ) {
-						allStatements = false;
-						break;
-					}	
-				}
-
-				if ( allStatements ) {
-					String buf = "if (";
-
-					for( int j = 0;  j < n.numChildren(); ++j ) {
-						Node c = (Node) n.get(j);
-
-						buf += "\t" + c.getValue();
-
-						if ( j < n.numChildren() -1 ) {
-							buf += " ||";
-						}
-						//buf += "\n";
-					}
-
-					buf += ");\n";
-
-					n.setValue( buf );
-					n.removeChildren();
-				}
-			}
-		}
 */
 	}
 
@@ -1093,13 +756,12 @@ public class EBNF extends BasicParser {
  	 * Generate output from the current node tree.
  	 */
 	private void generate( State state ) {
-		final String outfile = "output.java";
-
 		String output = "";
 
 		Node root = state.getCurNode();
 
 		String className       = root.get("language").get("label").getValue();
+		final String outfile   = className + ".java";
 		Node   member_patterns = root.get("temp").get("members");
 		Node   init_patterns   = root.get("temp").get("ctor");
 
@@ -1256,7 +918,8 @@ public class EBNF extends BasicParser {
  	 */
 	private void showFinalResult( State state ) {
 		try {
-			if ( state.eol() ) {
+//			if ( state.eol() ) {
+			if ( eol(state.getCurpos() ) ) {
 				info("Parsing completed succesfully.");
 			} else { 
 				if ( state.getErrorPos() != -1 ) {
@@ -1274,9 +937,22 @@ public class EBNF extends BasicParser {
 	public static void main(String[] argv) 
 		throws NoSuchMethodException, IllegalAccessException {
 
-		EBNF parser = new EBNF( argv[0] );
+		EBNFInitial parser = new EBNFInitial( argv[0] );
 		//parser.setTraceLevel( TRACE );
 		parser.setFirstTwoLines(true);
-		parser.parse();
+		State state = parser.parse();
+
+		
+		// Do node translations
+		EBNFTranslator translator = new EBNFTranslator();
+		translator.translate( state );
+
+		// Create output
+		EBNFGenerator generator = new EBNFGenerator();
+		generator.generate( state );
+
+		// Exit
+		parser.saveNodes( state );
+		parser.showFinalResult(state);
 	}
 }
