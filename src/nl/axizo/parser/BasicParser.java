@@ -214,8 +214,11 @@ public class BasicParser {
 	 * Values of child nodes are written indented in relation to the parent node. 
 	 * the output is a textual representation of the Node-tree.
 	 */
-	protected static void saveNodes( State state ) {
-		String localFileName = "nodes.txt";
+	public static void saveNodes( State state, String localFileName ) {
+
+		if ( localFileName == null ) {
+			localFileName = "nodes.txt";
+		}
 
 		String output = state.getCurNode().show( getFirstTwoLines() );
 
@@ -225,6 +228,28 @@ public class BasicParser {
 			error("saveNodes exception: "+ e.toString() );
 		}
 	}
+
+	/**
+ 	 * Show the final status of the parsing on standard output.
+ 	 *
+ 	 * Errors are shown in the error output in this step.
+ 	 */
+	public void showFinalResult( State state ) {
+		try {
+			if ( eol(state.getCurpos() ) ) {
+				info("Parsing completed succesfully.");
+			} else { 
+				if ( state.getErrorPos() != -1 ) {
+					error( "Error in " + state.getErrorMethod() + " at: " + 
+						curLine( state.getErrorPos() ) );
+				}
+			}
+			trace( "curpos: " + curLine( state.getCurpos() ) );
+		} catch ( ParseException e ) {
+			error( "Exception: " + e.toString() );
+		}
+	}
+
 
 	/** 
  	 * Determine if given position in buffer is at the end of the buffer.

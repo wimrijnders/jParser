@@ -738,47 +738,30 @@ public class EBNFInitial extends BasicParser {
 	}
 
 
-	/**
- 	 * Show the final status of the parsing.
- 	 *
- 	 * Errors are shown in the error output in this step.
- 	 */
-	private void showFinalResult( State state ) {
-		try {
-			if ( eol(state.getCurpos() ) ) {
-				info("Parsing completed succesfully.");
-			} else { 
-				if ( state.getErrorPos() != -1 ) {
-					error( "Error in " + state.getErrorMethod() + " at: " + 
-						curLine( state.getErrorPos() ) );
-				}
-			}
-			trace( "curpos: " + curLine( state.getCurpos() ) );
-		} catch ( ParseException e ) {
-			error( "Exception: " + e.toString() );
-		}
-	}
-
-
 	public static void main(String[] argv) 
 		throws NoSuchMethodException, IllegalAccessException {
+		final String nodesFile = "nodes.txt";
 
 		EBNFInitial parser = new EBNFInitial( argv[0] );
 		//parser.setTraceLevel( TRACE );
 		parser.setFirstTwoLines(true);
 		State state = parser.parse();
 
-		
-		// Do node translations
-		EBNFTranslator translator = new EBNFTranslator();
-		translator.translate( state );
+		try {	
+			// Do node translations
+			EBNFTranslator translator = new EBNFTranslator();
+			translator.translate( state );
 
-		// Create output
-		EBNFGenerator generator = new EBNFGenerator();
-		generator.generate( state );
+			// Create output
+			EBNFGenerator generator = new EBNFGenerator();
+			generator.generate( state );
 
-		// Exit
-		parser.saveNodes( state );
-		parser.showFinalResult(state);
+			// Exit
+			parser.saveNodes( state, nodesFile );
+			parser.showFinalResult(state);
+		} catch( ParseException e ) {
+			error("Error during parsing: " + e.getMessage() );
+			//TODO: examine if following needed: System.exit(-1);
+		}
 	}
 }

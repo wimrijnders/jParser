@@ -19,7 +19,11 @@
 	</target>
 
 	<target name="compile" depends="init" >
-		<javac srcdir="${src}" destdir="${build}"/>
+		<javac srcdir="${src}" destdir="${build}">
+
+			<!-- don't compile the main test program at this point -->
+			<exclude name="nl/axizo/EBNF/EBNFMain.java" />
+		</javac>
 	</target>
 
 	<target name="build" depends="compile" >
@@ -50,8 +54,13 @@
 	</target>
 
 	<target name="test" depends="run" >
+		<echo>Compiling test</echo>
 		<!-- Compile the generated parser -->	
-		<javac srcdir="${test}" destdir="${test}">
+		<copy file="${src}/nl/axizo/EBNF/EBNFMain.java" 
+			tofile="${test}/nl/axizo/EBNF/EBNFMain.java" 
+		/>
+		<javac destdir="${test}">
+			<src path="${test}"/>
 			<classpath>
 				<pathelement location="${dist}/lib/parser.jar"/>
 			</classpath>
@@ -59,8 +68,9 @@
 
 		<!-- TODO: Following part not completed yet -->
 		<!-- And run the compiled result -->
+		<echo>Running test</echo>
 		<java 
-				classname="nl.axizo.EBNF" 
+				classname="nl.axizo.EBNF.EBNFMain" 
 				dir="${test}"
 				fork="true"
 		>
@@ -68,13 +78,14 @@
 			<arg value="../ebnf.ebnf"/>
 			<classpath>
 				<pathelement location="${dist}/lib/parser.jar"/>
+				<pathelement location="${test}"/>
 			</classpath>
 		</java>
 	</target>
 		
 
 	<target name="clean" >
-	<delete>
+	<delete includeemptydirs="true">
 		<fileset dir="${build}">
 			<include name="**/*" />
 		</fileset>
@@ -84,7 +95,7 @@
 		<fileset dir="${doc}">
 			<include name="**/*" />
 		</fileset>
-		<fileset dir="${test}">
+		<fileset dir="${test}" >
 			<include name="**/*" />
 		</fileset>
 	</delete>
