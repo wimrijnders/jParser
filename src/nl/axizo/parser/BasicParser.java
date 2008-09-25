@@ -240,7 +240,7 @@ public class BasicParser {
 				info("Parsing completed succesfully.");
 			} else { 
 				if ( state.getErrorPos() != -1 ) {
-					error( "Error in " + state.getErrorMethod() + " at: " + 
+					error( "Error in label '" + state.getErrorMethod() + "' at: " + 
 						curLine( state.getErrorPos() ) );
 				}
 			}
@@ -260,6 +260,23 @@ public class BasicParser {
 		if ( curpos > buffer.length() ) { throw new ParseException(); }
 
 		return curpos == buffer.length();
+	}
+
+
+	/**
+ 	 * Default WS rule for all parsers.
+ 	 *
+ 	 * Should always work, even if the internal rule WS_intern 
+ 	 * is not present.
+ 	 *
+ 	 * If no WS defined in the derived parser classes, this
+ 	 * method does nothing.
+ 	 */
+	protected boolean WS(State state ) throws ParseException {
+
+		s( "WS_intern", state, false, true);
+
+		return true;
 	}
 }
 

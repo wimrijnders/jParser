@@ -57,13 +57,14 @@ public class EBNFInitial extends BasicParser {
 		return true;
 	}
 
+/*
 	protected boolean WS(State state ) throws ParseException {
 
 		s( "WS_intern", state, false, true);
 
 		return true;
 	}
-
+*/
 
 	public boolean p_comment(State state ) throws ParseException {
 
@@ -209,6 +210,7 @@ public class EBNFInitial extends BasicParser {
 
 		do WS(state); while(
 			parseString( "|", state, false, true ) &&
+			WS(state) &&
 			s( "statement", state )
 		);
 
@@ -747,21 +749,38 @@ public class EBNFInitial extends BasicParser {
 		parser.setFirstTwoLines(true);
 		State state = parser.parse();
 
-		try {	
-			// Do node translations
-			EBNFTranslator translator = new EBNFTranslator();
-			translator.translate( state );
+		//DEBUG
+		//if(true) {
+		//	parser.info("Doing parse only.");
+		//	return;
+		//}
 
-			// Create output
-			EBNFGenerator generator = new EBNFGenerator();
-			generator.generate( state );
+		// Skip rest of steps if  error occured during parsing stage
+		if ( state.hasErrors() ) {
+			info( "Errors occured during parsing; skipping translation and generation.");
+		} else {
+			try {	
+				// Do node translations
+				EBNFTranslator translator = new EBNFTranslator();
+				translator.translate( state );
+	
+				// Create output
+				EBNFGenerator generator = new EBNFGenerator();
+				generator.generate( state );
+	
+			} catch( ParseException e ) {
+				error("Error during translation/generation: " + e.getMessage() );
 
-			// Exit
-			parser.saveNodes( state, nodesFile );
-			parser.showFinalResult(state);
-		} catch( ParseException e ) {
-			error("Error during parsing: " + e.getMessage() );
-			//TODO: examine if following needed: System.exit(-1);
+				// Nodes output may be handy for debugging
+				parser.saveNodes( state, nodesFile );
+				System.exit(1);
+			}
+		}
+
+		parser.saveNodes( state, nodesFile );
+		parser.showFinalResult(state);
+		if ( state.hasErrors() ) {
+			System.exit(1);
 		}
 	}
 }

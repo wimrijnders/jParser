@@ -4,8 +4,7 @@
  */
 package nl.axizo.EBNF;
 
-import nl.axizo.parser.State;
-import nl.axizo.parser.Node;
+import nl.axizo.parser.*;
 import java.util.Vector;
 import java.util.regex.*;
 
@@ -152,9 +151,15 @@ public class EBNFTranslator {
 		// Create a new rule node containing the child nodes of the
 		// group.
 		Node group = new Node("rule","");
+
+		// Add an internal rule-modifier here, so that we can
+		// hide the rule later on in the generated output.
+		group.set("rule_modifier").addChild("string","skip");
+
 		group.set( "label", nodeName ); 
 		group.addChildren( n );
 
+		// Add created node to the parse tree
 		root.get("language").addChild(group);
 
 		// Replace group node with a new label node indicating a call to the 
@@ -264,6 +269,33 @@ public class EBNFTranslator {
 
 
 	/**
+ 	 * Rename WS-rule internally
+ 	 *
+ 	 * WS (whitespace) has special handling within the parser. Using
+ 	 * the rule directly works, but does not register the WS nodes 
+ 	 * correctly in the parse tree. For this reason, the WS-rule needs
+ 	 * to be renamed.
+ 	 */ 
+	void translateWS( State state ) {
+		//Detect presence of WS rule
+		Vector res =  state.getCurNode().findNodes( "rule" );
+
+		for( int i = 0;  i < res.size(); ++i ) {
+			Node n = (Node) res.get(i);
+
+			String ruleName = n.get("label").getValue();
+
+			if ( "WS".equals( ruleName ) ) {
+				Util.info("WS rule detected; renaming.");
+
+				n.get("label").setValue("WS_intern");
+			}
+		}
+		
+	}
+
+
+	/**
  	 * Perform translation steps on the nodes which were generated
  	 * after a succesful parse.
  	 *
@@ -278,6 +310,8 @@ public class EBNFTranslator {
 		Vector res;
 
 		setWSFlags(state);
+
+		translateWS(state);
 
 		translateCharsets( state);
 		translateLiterals( state);

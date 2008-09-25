@@ -95,7 +95,7 @@ public class EBNFGenerator {
 			// account. This is sort of dirty. TODO: examine better solution
 			if ( isWhileLoop ) {
 				// while-loop 
-				out += "\t\t" + value + ", true ));\n";
+				out += "\t\t" + value + " ));\n";
 			} else {
 				// normal statement
 				out += "\t\t" + value + ", true );\n";
@@ -167,6 +167,29 @@ public class EBNFGenerator {
 
 
 	/**
+ 	 * Determine is passed rule node has a token modifier.
+ 	 *
+ 	 * @param rule node to check for token modifier.
+ 	 * @return true if token modifier present, false otherwise.
+ 	 */
+	private static boolean isTokenRule( Node rule ) {
+		return "token".equals( rule.get("rule_modifier").get("string").getValue() );
+	}
+
+	/**
+ 	 * Determine is passed rule node has a skip modifier.
+ 	 *
+ 	 * A rule with a skip modifier gets hidden in the output,
+ 	 * while the generated children of the rule are retained.
+ 	 *
+ 	 * @param rule node to check for skip modifier.
+ 	 * @return true if skip modifier present, false otherwise.
+ 	 */
+	private static boolean skipThisRule( Node rule ) {
+		return "skip".equals( rule.get("rule_modifier").get("string").getValue() );
+	}
+
+	/**
  	 * Generate method code from given Node.
  	 */
 	private String generateMethod( Node rule ) {
@@ -175,6 +198,16 @@ public class EBNFGenerator {
 
 		output += "\tpublic boolean " + name + "(State state ) throws ParseException {\n\n";
 		output += generateStatements( rule );
+
+		if ( isTokenRule( rule) ) {
+			output += "\n\t\tstate.getCurNode().collect();\n";
+		}
+
+		if ( skipThisRule( rule ) ) {
+			output += "\n\t\t// replace this node with its children\n" +
+						"\t\tstate.setSkipCurrent( true );\n";
+		}
+
 		output += "\n\t\treturn true;\n\t}\n\n";
 
 		return output;

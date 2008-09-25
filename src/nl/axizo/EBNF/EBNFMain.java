@@ -27,18 +27,15 @@ public class EBNFMain {
 		parser.setFirstTwoLines(true);
 		State state = parser.parse();
 
-/*	
-		// Do node translations
-		EBNFTranslator translator = new EBNFTranslator();
-		translator.translate( state );
-
-		// Create output
-		EBNFGenerator generator = new EBNFGenerator();
-		generator.generate( state );
-*/
-		// Exit
 		parser.saveNodes( state, nodesFile );
 		parser.showFinalResult(state);
+
+		// Quit if parse errors occured
+		if ( state.hasErrors() ) {
+			System.exit(-1);
+		}		
+
+		//TODO: Translation and generation from this point
 	}
 
 }

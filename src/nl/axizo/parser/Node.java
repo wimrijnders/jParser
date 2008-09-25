@@ -80,8 +80,15 @@ public class Node {
  	 * this will return the first child node. In order to access
  	 * the other child nodes with the same key, it is necessary
  	 * to iterate through the child list.
- 	 *
+ 	 * <p>
+ 	 * If the key is not found, a null-node is returned. This 
+ 	 * enables chaining of get() calls. This also means that
+ 	 * null is never returned. Use instance method Node.isNull() 
+ 	 * (TODO: add referral to method isNull() here)
+ 	 * to check if the return value is valid.
+ 	 * </p>
  	 * @param key key value to search for.
+ 	 * @return Node instance
  	 */
 	public Node get(String key ) {
 		for ( int i =0; i < children.size(); ++i ) {
@@ -92,7 +99,11 @@ public class Node {
 			}
 		}
 
-		return null;
+		// Return a null-node to avoid nullPointerExceptions 
+		// on chained get() calls.
+		return new Node() {
+			public boolean isNull() { return true; }
+		};
 	}
 
 
@@ -106,7 +117,7 @@ public class Node {
 
 	public Node set( Node n ) {
 		Node help = get( n.key );
-		if ( help == null ) {
+		if ( help.isNull() ) {
 			addChild( n );
 			help = n;
 		} else {
@@ -245,4 +256,6 @@ public class Node {
 	public String toString() {
 		return key + ": " + value + ": " + children.size() + " children";
 	}
+
+	public boolean isNull() { return false; }
 }

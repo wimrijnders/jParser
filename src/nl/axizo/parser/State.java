@@ -69,4 +69,10 @@ public class State {
 
 	public void setSkipCurrent(boolean val) { skipCurrent = val; }
 	public boolean getSkipCurrent() { return skipCurrent; }
+
+	public boolean hasErrors() { 
+		// Succesful completion sets the error pos to the end of file.
+		// Need to take that into account
+		return getErrorPos() != getCurpos() && getErrorPos() != -1; 
+	}
 }

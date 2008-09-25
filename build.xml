@@ -35,6 +35,7 @@
 				classname="nl.axizo.EBNFInitial" 
 				dir="${test}"
 				fork="true"
+				failonerror="true"
 		>
 			<!-- up-dir needed because we start in a subdir -->
 			<arg value="../ebnf.ebnf"/>
@@ -73,6 +74,7 @@
 				classname="nl.axizo.EBNF.EBNFMain" 
 				dir="${test}"
 				fork="true"
+				failonerror="true"
 		>
 			<!-- up-dir needed because we start in a subdir -->
 			<arg value="../ebnf.ebnf"/>

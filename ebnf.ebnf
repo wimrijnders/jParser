@@ -76,7 +76,7 @@ SetCase       = 'matchCase' [+\-].
 switches      = SetError | SetWSOn | SetWSOff | SetCase.
 o_comment     = Err+ "#" { [\all~\r\n] } [\r\n].
 c_comment     = Err- "//" { [\all~\r\n] } [\r\n].
-comment       = o_comment | c_comment.
+token comment       = o_comment | c_comment.
 ignore WS     = { switches | comment | [ \t\n\r] }.
 
 //Character definitions
