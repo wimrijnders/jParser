@@ -80,25 +80,45 @@ public class EBNFGenerator {
 	}
 
 
-	private String generateAlternative( Node n, boolean doWS ) {
+	private String generateAlternative( Node n, boolean doWS, boolean isFirst ) {
 		String out = "";
 
-		if ( doWS ) {
-			out += "\t\tWS(state);\n";
-		}
+		if ( doWS && !isFirst ) out += "\t\tWS(state);\n";
 
 		if ( n.numChildren() == 1 ) {
 			String value =  n.get("call").getValue();
-			boolean isWhileLoop = ( value.indexOf( "do; while" ) != -1 );
+			int whileIndex =  value.indexOf( "do; while" );
+			boolean isWhileLoop = ( whileIndex != -1 );
 
 			// Special case for loop, need to take the endbrace into
 			// account. This is sort of dirty. TODO: examine better solution
 			if ( isWhileLoop ) {
+				// While-loops at start of statement need to do WS regardless
+				// isFirst therefore ignored here.
+				if ( doWS ) {
+					// Dirty: insert WS handling in while loop
+					int len = "do; while".length();
+					int endIndex = whileIndex + len;
+					value = value.substring(0, whileIndex ) 
+							+ "do WS(state); while" 
+							+ value.substring(endIndex);
+				}
+
 				// while-loop 
 				out += "\t\t" + value + " ));\n";
 			} else {
+
 				// normal statement
-				out += "\t\t" + value + ", true );\n";
+				String throwParam = ", true";
+
+				// If a parameter was passed, use passed value instead
+				if ( !n.get("call").get("string").isNull() ) {
+					throwParam = n.get("call").get("string").getValue();
+					Util.info("Detected parameter '" + throwParam 
+							+ "' for call to '" + value + "'");
+				}
+
+				out += "\t\t" + value + throwParam + " );\n";
 			}
 		} else {
 			// more than one child
@@ -108,6 +128,8 @@ public class EBNFGenerator {
 				Node c = n.get( i );
 
 				if ( !"call".equals( c.getKey() ) ) {
+					// TODO: enable alternatives for non-calls.
+					//       this would be while-loops
 					Util.warning( "non-call found while generating alternative" );
 					continue;
 				}
@@ -156,9 +178,9 @@ public class EBNFGenerator {
 			}
 
 			// Never do WS for first call in block
-			boolean doWS = "skipWS".equals( c.getValue() ) && !isFirst;
+			boolean doWS = "skipWS".equals( c.getValue() );
 
-			out += generateAlternative( c, doWS );
+			out += generateAlternative( c, doWS, isFirst );
 			isFirst = false;
 		}
 
@@ -196,7 +218,8 @@ public class EBNFGenerator {
 		String name   = rule.get("label").getValue();
 		String output = "";
 
-		output += "\tpublic boolean " + name + "(State state ) throws ParseException {\n\n";
+		output += "\tpublic boolean " + name + "(State state ) throws ParseException {\n" +
+				"\t\ttrace(\"Called method '" + name + "'.\");\n\n";
 		output += generateStatements( rule );
 
 		if ( isTokenRule( rule) ) {
@@ -207,6 +230,9 @@ public class EBNFGenerator {
 			output += "\n\t\t// replace this node with its children\n" +
 						"\t\tstate.setSkipCurrent( true );\n";
 		}
+
+		output += "\n\t\ttrace(\"Completed method '" + name + "'; value: \" +" + 
+			"state.getCurNode().getValue() + \".\");\n";
 
 		output += "\n\t\treturn true;\n\t}\n\n";
 

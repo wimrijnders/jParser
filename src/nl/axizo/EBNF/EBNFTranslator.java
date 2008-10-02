@@ -74,7 +74,8 @@ public class EBNFTranslator {
 
 			String val = n.getValue();
 
-			if ( val.equals( "\\-" ) || val.equals( "\\)" ) || val.equals( "\\]" ) || val.equals( "\"" ) || val.equals("'") ) {
+			if ( val.equals( "\\-" ) || val.equals( "\\)" ) || val.equals( "\\]" ) || 
+					val.equals( "\"" ) || val.equals("'") ) {
 				n.setValue( "\\" + val );
 			} else if ( val.equals( "\\\\" ) ) {
 				n.setValue( "\\\\" + val );
@@ -106,8 +107,12 @@ public class EBNFTranslator {
 			String ctor_value = "\t\tpattern" + counter + " = Pattern.compile( \"[" + n.getValue() + "]\");\n";
 			String member_value = "\tprivate Pattern pattern" + counter + ";\n";
 
-			state.getCurNode().set( "temp" ).set( "ctor" ).addChild( new Node( "init_pattern", ctor_value) );
-			state.getCurNode().set( "temp" ).set( "members" ).addChild( new Node( "member_pattern", member_value) );
+			state.getCurNode().set( "temp" ).set( "ctor" ).addChild( 
+					new Node( "init_pattern", ctor_value) 
+			);
+			state.getCurNode().set( "temp" ).set( "members" ).addChild( 
+					new Node( "member_pattern", member_value) 
+			);
 			n.setValue( "pattern" + counter );
 		}
 	}
@@ -124,7 +129,7 @@ public class EBNFTranslator {
 			Node n = (Node) res.get(i);
 		
 			// Translate special characters in literal
-			// following replaces a single backslash with a double. No, really
+			// following replaces a single backslash with a double. I kid you not.
 			n.setValue( replace( n.getValue(), "\\\\", "\\\\\\\\") );
 			//Okay, this sucks, but I will persevere
 			n.setValue( replace( n.getValue(), "\\\"", "\\\\\"") );
@@ -217,7 +222,7 @@ public class EBNFTranslator {
 	}
 
 
-	private void translateSingleStatement( State state ) {
+	private void translateSingleStatement( State state ) throws ParseException {
 		Vector res =  state.getCurNode().findNodes( "statement" );
 
 		for( int i = 0;  i < res.size(); ++i ) {
@@ -227,16 +232,27 @@ public class EBNFTranslator {
 			// Statement should contain single child of type
 			// label, charset or literal, and optionally
 			// a repeat postfix
-			if ( n.numChildren() == 2 ) {
-				if( n.get( "postfix" ) != null ) {
+			if ( n.numChildren() == 2  && !n.get( "postfix" ).isNull() ) {
 					repeat = n.get("postfix").getValue();
-				}
-			} else if ( n.numChildren() != 1 ) continue;
+			} else if ( n.numChildren() > 1 ) {
+				//TODO: except statement not handled yet. Implementation handling hereof
+
+				String errMsg = "Too many child nodes detected for statement. There should " +
+					"be one, with at most one postfix node.";
+
+				throw new ParseException( errMsg );
+			} else if ( n.numChildren() == 0 ) {
+				String errMsg = "No child nodes detected for statement. There should " +
+					"be one, with at most one postfix node.";
+
+				throw new ParseException( errMsg );
+			} 
 
 			// TODO: assert that statement and postfix have correct order at this point
 			Node child = n.get(0);
 
 			String call;
+			String param = null;
 			if ( "literal".equals( child.getKey() ) ) {
 				call = "parseString( \"" + child.getValue() + "\", state"; 
 			} else if ( "charset".equals( child.getKey() ) ) {
@@ -249,7 +265,9 @@ public class EBNFTranslator {
 			if ( !"".equals(repeat) ) {
 				if ( "?".equals( repeat ) ) {
 					// No problem, just don't throw
-					//call += ");";
+					// We signal this by  adding a param as a child
+					// to the call node.
+					param = ", false";
 				} else if ( "*".equals( repeat ) ) {
 					// Terminating brace gets added during generation
 					call = "do; while (" + call;
@@ -264,6 +282,9 @@ public class EBNFTranslator {
 			n.setKey( "call" );
 			n.setValue( call );
 			n.removeChildren();
+			if ( param != null ) {
+				n.addChild( "string", param );
+			}
 		}
 	}
 
@@ -306,7 +327,7 @@ public class EBNFTranslator {
 	 * - Need to sort out the final two optional parameters.
 	 * </pre></p>
 	 */
-	public void translate( State state ) {
+	public void translate( State state ) throws ParseException {
 		Vector res;
 
 		setWSFlags(state);

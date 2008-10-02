@@ -220,7 +220,8 @@ public class BasicParser {
 			localFileName = "nodes.txt";
 		}
 
-		String output = state.getCurNode().show( getFirstTwoLines() );
+		//String output = state.getCurNode().show( getFirstTwoLines() );
+		String output = state.getOutput( getFirstTwoLines() );
 
 		try {
 			Util.saveFile( localFileName, output);

@@ -5,6 +5,7 @@
 package nl.axizo.EBNF;
 
 import nl.axizo.parser.State;
+import nl.axizo.parser.Util;
 
 /**
  * Entry point for generated EBNF class.
@@ -23,7 +24,7 @@ public class EBNFMain {
 		final String nodesFile = "nodes_test.txt";
 
 		EBNF parser = new EBNF( argv[0] );
-		//parser.setTraceLevel( TRACE );
+		parser.setTraceLevel( Util.TRACE );
 		parser.setFirstTwoLines(true);
 		State state = parser.parse();
 

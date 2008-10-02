@@ -81,7 +81,11 @@ ignore WS     = { switches | comment | [ \t\n\r] }.
 
 //Character definitions
 overridechar  = [\)\-\~\\\]].               
-token any     = [\all]~overridechar.
+# except clause on statement level not handled yet.
+# except part in following range is actually overridechar
+# ORIGINAL:
+# token any     = [\all]~overridechar.
+token any     = [\all~\)\-\~\\\]].               
 dec           = [0123456789].
 ExtChar       = [rnt] | overridechar | (dec dec dec) .
 anychar       = any | ( '\\' ExtChar). 
@@ -111,8 +115,8 @@ token LiteralBlock  = litchar+.
 Literal       = ('\"' LiteralBlock '\"') | ("\'" LiteralBlock "\'").
 
 token Label   = [_a-zA-Z] [_a-zA-Z0-9]*.
-RightLabel    = Label.
-LeftLabel     = Label.
+token RightLabel    = Label.
+token LeftLabel     = Label.
 
 skipWS
 
@@ -146,10 +150,10 @@ parentname     = Label.
 definition     = "definition".
 implementation = "implementation".
 languageheader = "language" (definition | implementation)? languagename
-                 ( ( "extends" parentname )?
-                   ( "from" ( "binary" | "text")? )? //default: text
-                   ( "to"   ( "binary" | "text")? )? //default: text
-                 )?.
+                 ( "extends" parentname )?
+                 ( "from" ( "binary" | "text") )? //default: text
+                 ( "to"   ( "binary" | "text") )? //default: text
+                 .
 languagebody   = '{' { State | Actionblock | Function | Line } '}'.  //The actual language def
 
 languageblock  = languageheader languagebody.

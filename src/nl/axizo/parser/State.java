@@ -9,6 +9,7 @@ public class State {
 	private int     curpos      = 0;
 	private int     errpos      = -1;
 	private String  errmethod   = null;
+	private State	errstate	= null;
 	private Node    curNode;
 	private boolean skipCurrent = false;
 
@@ -51,6 +52,13 @@ public class State {
 	}
 
 
+	/**
+ 	 * Flag an error situation.
+ 	 *
+ 	 * If the passed state instance already contains error info,
+ 	 * copy that, otherwise use the current position within the
+ 	 * parsed data and the passed method to set the error.
+ 	 */
 	public void setError( State state, String method ) {
 		if ( state.getErrorPos() != -1 ) {
 			errpos = state.getErrorPos();
@@ -59,6 +67,10 @@ public class State {
 			errpos = state.getCurpos();
 			errmethod = method;
 		}
+		
+		// Keep hold of state with error, so that we can generate
+		// node output later on
+		errstate = state;
 	}
 
 	public int    getCurpos()      { return curpos; }
@@ -74,5 +86,28 @@ public class State {
 		// Succesful completion sets the error pos to the end of file.
 		// Need to take that into account
 		return getErrorPos() != getCurpos() && getErrorPos() != -1; 
+	}
+
+
+	/**
+ 	 *  Return a text representation of the state tree contained in 
+ 	 *  this state.
+ 	 *
+ 	 *  If an error has been flagged, the output is delegated to
+ 	 *  the stored state in which the error occured.
+ 	 *
+ 	 *  @param showFirstTwoLines if true, show only first two lines of node values.
+ 	 *  						 Otherwise, show entire value.
+ 	 *
+ 	 *  @return textual representation of node tree.
+ 	 */
+	public String getOutput(boolean showFirstTwoLines) {
+		State state = this;
+
+		if ( hasErrors() ) {
+			state = errstate;
+		}
+
+		return state.getCurNode().show( showFirstTwoLines );
 	}
 }

@@ -750,10 +750,12 @@ public class EBNFInitial extends BasicParser {
 		State state = parser.parse();
 
 		//DEBUG
-		//if(true) {
-		//	parser.info("Doing parse only.");
-		//	return;
-		//}
+		if(false) {
+			parser.info("Doing parse only.");
+			parser.saveNodes( state, nodesFile );
+			parser.showFinalResult(state);
+			return;
+		}
 
 		// Skip rest of steps if  error occured during parsing stage
 		if ( state.hasErrors() ) {
