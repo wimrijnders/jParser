@@ -774,6 +774,10 @@ public class EBNFInitial extends BasicParser {
 			info( "Errors occured during parsing; skipping translation and generation.");
 		} else {
 			try {	
+				// Validate parse tree
+				EBNFValidator validator = new EBNFValidator();
+				validator.validate( state );
+
 				// Do node translations
 				EBNFTranslator translator = new EBNFTranslator();
 				translator.translate( state );

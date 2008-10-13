@@ -70,14 +70,13 @@ language EBNF
 {
 noWS
 SetError      = 'Err' [+\-].
-SetWSOn       = 'skipWS'.  
-SetWSOff      = 'noWS'.
+token modifier_WS   =  'skipWS' | 'noWS'.
 SetCase       = 'matchCase' [+\-].
-switches      = SetError | SetWSOn | SetWSOff | SetCase.
+switches      = SetError | modifier_WS | SetCase.
 o_comment     = Err+ "#" { [\all~\r\n] } [\r\n].
 c_comment     = Err- "//" { [\all~\r\n] } [\r\n].
 token comment       = o_comment | c_comment.
-ignore WS     = { switches | comment | [ \t\n\r] }.
+ignore WS     = { comment | [ \t\n\r] }.
 
 //Character definitions
 overridechar  = [\)\-\~\\\]].               
@@ -112,7 +111,11 @@ litchar       = [\all~'"\r\n\\]
                 | ( litoverride ( ['"\\] | tabext | crext | lfext ) ).     
 
 token LiteralBlock  = litchar+.      
-Literal       = ('\"' LiteralBlock '\"') | ("\'" LiteralBlock "\'").
+
+# TODO: ensure that following is not added to parse tree
+# TODO: check what modifier 'ignore' is supposed to do.
+ignore literal_symbol = "\'" LiteralBlock "\'".
+Literal        = '\"' LiteralBlock '\"'.
 
 token Label   = [_a-zA-Z] [_a-zA-Z0-9]*.
 token RightLabel    = Label.
@@ -121,7 +124,7 @@ token LeftLabel     = Label.
 skipWS
 
 //Basic WEBNF stuff
-basicstatement = Charset | Literal| RightLabel.
+basicstatement = Charset | Literal| literal_symbol | RightLabel.
 BlockSeq       = Sequence.
 ConditionalSeq = Sequence.
 WhileSeq       = Sequence.
@@ -129,11 +132,11 @@ WhileSeq       = Sequence.
 RepPostfix     = [+*?].
 
 ExceptStatement= Statement.
-Statement      = ( basicstatement  | ( "(" BlockSeq ")" ) ) noWS ( RepPostfix | ('~' skipWS ExceptStatement) )?.
+Statement      = switches* ( basicstatement  | ( "(" BlockSeq ")" ) ) noWS ( RepPostfix | ('~' skipWS ExceptStatement) )?.
 
 Alternative    = noWS '|'.
 AlternateSeq   = Statement  (Alternative  Statement)*.
-Sequence       = ( AlternateSeq | ( "{" WhileSeq "}" ) )+.
+Sequence       = ( AlternateSeq | ( switches* "{" WhileSeq "}" ) )+.
 
 entr_ypoint    = 'entry'.
 mod_ignore		= 'ignore'.
@@ -146,17 +149,9 @@ Line           = linemodifiers? LeftLabel Err- '=' Err+ Sequence '.' .
 #
 
 languagename   = Label.
-parentname     = Label.
-definition     = "definition".
-implementation = "implementation".
-languageheader = "language" (definition | implementation)? languagename
-                 ( "extends" parentname )?
-                 ( "from" ( "binary" | "text") )? //default: text
-                 ( "to"   ( "binary" | "text") )? //default: text
-                 .
-languagebody   = '{' { State | Actionblock | Function | Line } '}'.  //The actual language def
-
-languageblock  = languageheader languagebody.
+languageblock  = "language" languagename '{' 
+		{ switches | State | Actionblock | Function | Line } 
+	'}'. 
 
 usingfile      = noWS [a-zA-Z0-9_]+ ( [.] { [a-zA-Z0-9_] } )?.
 languagefile   = Err- "using"  "language" "file" usingfile ".".
@@ -320,18 +315,6 @@ state
 ///////////////////////////////////////////////////////////////
 // Action Blocks
 ///////////////////////////////////////////////////////////////
-
-action SetWSOn {
-   if (!gDoingLine) gDefaultWS = true;
-   gSkipWS = true; 
-}
-
-
-action SetWSOff 
-{
-   if (!gDoingLine) gDefaultWS = false;
-   gSkipWS = false;   
-}
 
 
 action SetError 
@@ -1174,39 +1157,6 @@ post:
    }
 }
 
-
-action definition
-{
-        m_bDoingDefinition = true;
-}
-
-
-action implementation
-{
-        m_bDoingImplementation = true;
-}
-
-
-action languageheader
-{
-        if ( m_bDoingDefinition && $.language.[gParserLanguage].donedefinition$.Exists() ) {
-                WCString errString("Already did definition part for language ");
-                errString << gParserLanguage;
-                ParseError(errString,ERROR);
-        }
-
-        if ( m_bDoingImplementation && $.language.[gParserLanguage].doneimplementation$.Exists() ) {
-                WCString errString("Already did implementation part for language ");
-                errString << gParserLanguage;
-                ParseError(errString,ERROR);
-        }
-
-        if ( !m_bDoingDefinition && !m_bDoingImplementation) {
-                //The parse language block combines the definition and implementation part
-                m_bDoingDefinition = true;
-                m_bDoingImplementation = true;
-        }
-}
 
 
 action languageblock          //W11-3-97
