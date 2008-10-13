@@ -146,6 +146,18 @@ public class EBNFInitial extends BasicParser {
 		return true;
 	}
 
+	public boolean modifiers(State state ) throws ParseException {
+
+		s( "modifier", state, true );
+		do WS(state); while(
+			s( "modifier", state )
+		);
+
+		// replace this node with its children
+		state.setSkipCurrent( true );
+		
+		return true;
+	}
 
 	public boolean rule_modifier(State state ) throws ParseException {
 		return 
@@ -218,13 +230,13 @@ public class EBNFInitial extends BasicParser {
 	}
 
 	public boolean statements(State state ) throws ParseException {
-		s( "modifier", state );
+		s( "modifiers", state, false );
 		WS(state);
  
 		s( "alternative", state, true );
 
 		do WS(state); while(
-			s( "modifier", state ) ||
+			s( "modifiers", state ) ||
 			s( "alternative", state )
 		);
 

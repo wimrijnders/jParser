@@ -15,10 +15,10 @@ import java.lang.reflect.Method;
 
 
 public class Util {
-	public static final int TRACE   = 1;
-	public static final int INFO    = 2;
-	public static final int WARNING = 3;
-	public static final int ERROR   = 4;
+	public static final int TRACE   = 10;
+	public static final int INFO    = 20;
+	public static final int WARNING = 30;
+	public static final int ERROR   = 40;
 
 	private static int     traceLevel     = INFO;
 	private static boolean showDoneOutput    = false;
@@ -33,11 +33,13 @@ public class Util {
 	}
 
 	private static void out(int traceLevel, String str) {
+		// Util. qualifier needed in following
 		if ( traceLevel >= Util.traceLevel ) {
 			System.out.println( str );	
 		}
 	}
 
+	public static void trace  (int level, String str) { out( level  , str); }
 	public static void trace  (String str) { out( TRACE  , str); }
 	public static void info   (String str) { out( INFO   , str); }
 	public static void warning(String str) { out( WARNING, str); }

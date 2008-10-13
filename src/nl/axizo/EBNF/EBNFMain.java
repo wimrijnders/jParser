@@ -24,7 +24,7 @@ public class EBNFMain {
 		final String nodesFile = "nodes_test.txt";
 
 		EBNF parser = new EBNF( argv[0] );
-		parser.setTraceLevel( Util.TRACE );
+//		parser.setTraceLevel( Util.TRACE );
 		parser.setFirstTwoLines(true);
 		State state = parser.parse();
 

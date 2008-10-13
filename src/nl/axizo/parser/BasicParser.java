@@ -96,6 +96,7 @@ public class BasicParser {
 		return ret;
 	}
 
+	protected static void trace  (int level, String str) { Util.trace( level  , str); }
 	protected static void trace  (String str) { Util.trace( str); }
 	protected static void info   (String str) { Util.info( str); }
 	protected static void warning(String str) { Util.warning( str); }
@@ -157,6 +158,7 @@ public class BasicParser {
 		// Special case end of file handling.
 		// If string to test goes past buffer, there can never be a match
 		if ( state.getCurpos() + str.length() > buffer.length() ) {
+			if ( doThrow ) throw new ParseException();
 			return false;
 		}
 

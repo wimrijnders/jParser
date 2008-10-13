@@ -177,7 +177,7 @@ public class EBNFGenerator {
 				continue;
 			}
 
-			// Never do WS for first call in block
+			// Flag for determining if whitespace should be handled automatically
 			boolean doWS = "skipWS".equals( c.getValue() );
 
 			out += generateAlternative( c, doWS, isFirst );
@@ -219,7 +219,7 @@ public class EBNFGenerator {
 		String output = "";
 
 		output += "\tpublic boolean " + name + "(State state ) throws ParseException {\n" +
-				"\t\ttrace(\"Called method '" + name + "'.\");\n\n";
+				"\t\ttrace(" + (Util.TRACE -5) + ",\"Called method '" + name + "'.\");\n\n";
 		output += generateStatements( rule );
 
 		if ( isTokenRule( rule) ) {
