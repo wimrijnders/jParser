@@ -109,16 +109,23 @@ public class EBNFGenerator {
 			} else {
 
 				// normal statement
-				String throwParam = ", true";
+				String throwParams = ", true";
 
-				// If a parameter was passed, use passed value instead
-				if ( !n.get("call").get("string").isNull() ) {
-					throwParam = n.get("call").get("string").getValue();
-					Util.info("Detected parameter '" + throwParam 
+				// If parameters were passed, use those instead
+				Node param1 = n.get("call").get("param1");
+				Node param2 = n.get("call").get("param2");
+
+				// Param1 overrides default in throwParams
+				if ( !param1.isNull() ) throwParams = "," + param1.getValue();
+				//Param2 gets appended
+				if ( !param2.isNull() ) throwParams += "," + param2.getValue();
+
+				if ( !( param1.isNull() || param2.isNull() ) ) {
+					Util.info("Detected parameters '" + throwParams 
 							+ "' for call to '" + value + "'");
 				}
 
-				out += "\t\t" + value + throwParam + " );\n";
+				out += "\t\t" + value + throwParams + " );\n";
 			}
 		} else {
 			// more than one child
@@ -211,6 +218,10 @@ public class EBNFGenerator {
 		return "skip".equals( rule.get("rule_modifier").get("string").getValue() );
 	}
 
+	private static boolean ignoreThisRule( Node rule ) {
+		return "ignore".equals( rule.get("rule_modifier").get("string").getValue() );
+	}
+
 	/**
  	 * Generate method code from given Node.
  	 */
@@ -220,6 +231,13 @@ public class EBNFGenerator {
 
 		output += "\tpublic boolean " + name + "(State state ) throws ParseException {\n" +
 				"\t\ttrace(" + (Util.TRACE -5) + ",\"Called method '" + name + "'.\");\n\n";
+
+		// Ignore rule flag needs to be set before statements are generated
+		if ( ignoreThisRule( rule ) ) {
+			output += "\t\t// Block output of current node and its children\n" +
+				"\t\tstate.setIgnoreCurrent( true );\n\n";
+		}
+
 		output += generateStatements( rule );
 
 		if ( isTokenRule( rule) ) {

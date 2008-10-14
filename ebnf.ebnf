@@ -69,10 +69,10 @@
 language EBNF
 {
 noWS
-SetError      = 'Err' [+\-].
-token modifier_WS   =  'skipWS' | 'noWS'.
-SetCase       = 'matchCase' [+\-].
-switches      = SetError | modifier_WS | SetCase.
+SetError      = "Err" [+\-].
+token modifier_WS   =  "skipWS" | "noWS".
+SetCase       = "matchCase" [+\-].
+skip switches      = SetError | modifier_WS | SetCase.
 o_comment     = Err+ "#" { [\all~\r\n] } [\r\n].
 c_comment     = Err- "//" { [\all~\r\n] } [\r\n].
 token comment       = o_comment | c_comment.
@@ -87,21 +87,18 @@ overridechar  = [\)\-\~\\\]].
 token any     = [\all~\)\-\~\\\]].               
 dec           = [0123456789].
 ExtChar       = [rnt] | overridechar | (dec dec dec) .
-anychar       = any | ( '\\' ExtChar). 
+anychar       = any | ( "\\" ExtChar). 
 
 //Definitions EBNF extensions 
 cstoggle      = '~'.
-csallchars    = '\\all'.
-csrange       = csallchars | ( anychar  ( '-'  anychar )?  ).
+csallchars    = "\\all".
+token range       = csallchars | ( anychar  ( '-'  anychar )?  ).
 
 #Following is a case where syntax with '?' fails
-#The old version is also buggy: if cstoggle present, csrange MUST be present
-#Charset       = skipWS "charset"  "(" noWS {  [ cstoggle ] csrange }  ")".  
-#Charset       = skipWS "charset"  "(" noWS {  cstoggle? csrange }  ")".  
+#charset       = skipWS "charset"  "(" noWS {  cstoggle? range }  ")".  
 #Following works as we want it
-#Charset       = skipWS "charset"  "(" noWS {  csrange | (cstoggle csrange ) }  ")".  
-Charset       = ( noWS "[" {  csrange | (cstoggle csrange ) }  "]" ) |
-                            ( skipWS "charset"  "(" noWS {  csrange | (cstoggle csrange ) }  ")" ).
+charset       = ( noWS '[' {  range | (cstoggle range ) }  ']' ) |
+                            ( skipWS 'charset'  '(' noWS {  range | (cstoggle range ) }  ')' ).
 
 tabext		  = 't'.
 crext		  = 'r'.
@@ -115,42 +112,36 @@ token LiteralBlock  = litchar+.
 # TODO: ensure that following is not added to parse tree
 # TODO: check what modifier 'ignore' is supposed to do.
 ignore literal_symbol = "\'" LiteralBlock "\'".
-Literal        = '\"' LiteralBlock '\"'.
+token literal        = '\"' LiteralBlock '\"'.
 
-token Label   = [_a-zA-Z] [_a-zA-Z0-9]*.
-token RightLabel    = Label.
-token LeftLabel     = Label.
+token label   = [_a-zA-Z] [_a-zA-Z0-9]*.
+token RightLabel    = label.
 
 skipWS
 
 //Basic WEBNF stuff
-basicstatement = Charset | Literal| literal_symbol | RightLabel.
-BlockSeq       = Sequence.
-ConditionalSeq = Sequence.
-WhileSeq       = Sequence.
+skip basicstatement = charset | literal| literal_symbol | RightLabel.
+BlockSeq       = statements.
+ConditionalSeq = statements.
+WhileSeq       = statements.
 
-RepPostfix     = [+*?].
+token postfix     = [+*?].
 
-ExceptStatement= Statement.
-Statement      = switches* ( basicstatement  | ( "(" BlockSeq ")" ) ) noWS ( RepPostfix | ('~' skipWS ExceptStatement) )?.
+ExceptStatement= statement.
+statement      = switches* ( basicstatement  | ( "(" BlockSeq ")" ) ) noWS ( postfix | ('~' skipWS ExceptStatement) )?.
 
-Alternative    = noWS '|'.
-AlternateSeq   = Statement  (Alternative  Statement)*.
-Sequence       = ( AlternateSeq | ( switches* "{" WhileSeq "}" ) )+.
+alternative   = statement  ( '|'  statement)*.
+statements       = ( alternative | ( switches* "{" WhileSeq "}" ) )+.
 
-entr_ypoint    = 'entry'.
-mod_ignore		= 'ignore'.
-mod_token		= 'token'.
-linemodifiers  = entr_ypoint|mod_ignore|mod_token.
-Line           = linemodifiers? LeftLabel Err- '=' Err+ Sequence '.' .
+rule_modifier  = 'entry' | 'ignore' | 'token' | 'skip'.
+rule           = rule_modifier? label Err- '=' Err+ statements '.' .
 
 #
 #The actual language definition
 #
 
-languagename   = Label.
-languageblock  = "language" languagename '{' 
-		{ switches | State | Actionblock | Function | Line } 
+skip languageblock  = 'language' label '{' 
+		{ switches | State | action | Function | rule } 
 	'}'. 
 
 usingfile      = noWS [a-zA-Z0-9_]+ ( [.] { [a-zA-Z0-9_] } )?.
@@ -206,7 +197,6 @@ skipWS
 #
 #Action blocks:
 #
-ActionLabel    = Label.
 noWS
 #Note explicit removal of '0' in override chars - to catch any hex or oct
 blocklitchar   = [\all~"\r\n\\] | ( '\\' [\all~0] ).      
@@ -217,14 +207,14 @@ blockchar      = comment | blockstring | [\all~{}$].
 token code_block     = { ( '{' code_block '}' ) | blockchar | macro_block }.
 skipWS
 
-pre_indicator = "pre:". 
-post_indicator = "post:". 
+ignore pre_indicator = "pre:". 
+ignore post_indicator = "post:". 
 #token 
 pre_block  = pre_indicator  '{' noWS code_block '}'.
 #token 
 post_block = '{' noWS code_block '}'.
 
-Actionblock    = 'action' ActionLabel  (pre_block ( post_indicator post_block )? ) | post_block.
+action    = 'action' label  (pre_block ( post_indicator post_block )? ) | post_block.
 
 #
 # Functions
@@ -250,7 +240,7 @@ Function       = 'function' funcheader '{' noWS code_block '}'.
 # Definitions state extended, to allow for proper definition of constructor
 token number   = Err- noWS ( '+' | '-' )? dec+.
 token type_state = "WCLabels" | "WCString" | "int" | "charset" | "bool".
-token member_state = Label.
+token member_state = label.
 oldbool         = "TRUE" | "FALSE".
 token initvalue = number | oldbool | "true" | "false".
 member_var     = type_state member_state ( ('=' initvalue ) | ( '(' initvalue ')')  )?.
@@ -305,10 +295,10 @@ state
 
         bool m_bUsesCurrentToken;
 
-        //Following var' are actually local to action AlternateSeq 
-        WCString AlternateSeq_thisValue;
-        int AlternateSeq_bLastWasLoop;
-        int AlternateSeq_bLastWSval;
+        //Following var' are actually local to action alternative 
+        WCString alternative_thisValue;
+        int alternative_bLastWasLoop;
+        int alternative_bLastWSval;
 }
 
 
@@ -407,131 +397,10 @@ action cstoggle
 
 action csallchars
 {
-   //Make a complete charset for action csrange to handle.
+   //Make a complete charset for action range to handle.
    m_bCharsetHasZero = true;
 #   $CurrentToken$ = WCString( "\x01\xff" );
    setCurrentToken( WCString( "\x01\xff" ) );
-}
-
-
-action csrange 
-{
-   unsigned char fromkar, tokar;
-
-   fromkar = *($CurrentToken$.GetBuf());
-   if ( $CurrentToken$.Length() == 2 ) {
-      tokar = *( $CurrentToken$.GetBuf() + 1 );
-   }
-   else {
-      tokar = fromkar;
-   }
-      
-   tempcharset.insert(fromkar,tokar,do_insert);
-}
-
-
-action Charset
-pre: 
-{
-   do_insert = true;
-   tempcharset.clear();
-   m_bCharsetHasZero = false;
-} 
-post: 
-{                    
-   //tempcharset contains the charset just parsed
-
-   //W18-3-98 charset stored in class def instead of locally in member functions
-   WCString charsetBody = tempcharset;
-   if ( m_bCharsetHasZero) {
-      charsetBody  << ", TRUE ";
-   }
-
-   WCString charsetName;
-
-   //Check if charset with given body alread defined
-   $foreach pCharset in .language.[gParserLanguage].charsets$
-   $body$
-      if ( pCharset->GetValue() == charsetBody ) {
-         //charset was defined
-         charsetName = pCharset->GetName();
-      }
-   $end foreach$
-
-        if ( 0 == charsetName.Length() ) {
-                //This charset does not exist yet
-                ++m_charsetCount;
-                charsetName = WCString("m_kCharset");
-                charsetName << m_charsetCount;
-                $!language![gParserLanguage]!charsets![charsetName]$.SetValue(charsetBody);
-        }
-
-   //Save as list
-   {
-           CAttributeNode &node = $!alternateAcc!list$.AddTail("funccall", "testCharset").AddTail("parameters", "");
-                //Add parameters for this call
-                node.AddTail(charsetName,"");
-                node.AddTail("newExceptCount","1");		//Except clause stored in value
-
-           if ( !gMatchCase ) {
-                        node.AddTail("FALSE","");
-                }
-  }
-
-   //Create a corresponding error code
-   WCString thisError("Input character sequence does not match expected format.");
-   SetError(thisError);
-}
-
-
-action LeftLabel 
-{      
-   WCString aString(80);
-
-   //If u got this far, you're parsing a line - Set some switches
-   gDoingLine = true;
-   gSkipWS    = gDefaultWS;
-   gDoErr     = gDefaultErr;
-   gMatchCase = gDefaultCase;
-
-        aString = $CurrentToken$;
-
-   //Check if label already defined
-   if ( $.language.[gParserLanguage].Labels.[aString]$.Exists() ) {
-      return ParseError(ERR18);
-        }
-
-   $!language![gParserLanguage]!Labels![aString]$;
-
-   //W20-3-97 - entry point
-   if ( m_bEntryPoint ) {
-      $!language![gParserLanguage]!Labels![aString]!entry$;
-        }
-
-   //5-9-98 - ignore modifier
-   if ( m_bIgnoreActive ) {
-      $!language![gParserLanguage]!Labels![aString]!ignore$;
-        }
-        
-   //5-9-98 - token modifier
-   if ( m_bTokenActive ) {
-      $!language![gParserLanguage]!Labels![aString]!token$;
-        }
-                
-   Block_Up(aString.GetBuf());
-   Tabs.Inc();
-
-   //W5-1-97 Clear the values on the attribute count stack
-   if ( $!alternatecount$.GetAttributes() ) {
-      $!alternatecount$.GetAttributes()->Clear();
-        }
-}
-
-
-action languagename
-{
-   //Remember the name given to this language
-   gParserLanguage = $CurrentToken$;
 }
 
 
@@ -616,44 +485,6 @@ action litoverride
         setCurrentToken("");
 }
 
-action Literal  
-{
-        WCString aString = $CurrentToken$;
-        WCString temp;
-   
-        if ( aString.Length() ==1 ) {
-                temp << "testChar";
-        }
-        else {
-                temp << "testMatch"; 
-        }
-
-   CAttributeNode &node = $!alternateAcc!list$.AddTail("funccall", temp).AddTail("parameters", "");
-        temp.empty();
-
-        //Add parameters for this call
-        if ( aString.Length() ==1 ) {
-                temp << "'" << MakeCChar(*aString.GetBuf() ) << "'";
-        }
-        else {
-                temp << "\"" << MakeCString(aString) << "\"";
-        }
-        node.AddTail(temp,"");
-
-        node.AddTail("newExceptCount","1");
-        if ( !gMatchCase ) {
-                node.AddTail("FALSE","");
-        }
-
-
-   //Create a corresponding error code
-   WCString thisError(40);
-   thisError << "Literal \'" << aString << "\' expected.";
-   SetError(thisError);
-}
-
-
-
 action RightLabel 
 {      
         WCString aString = $CurrentToken$;
@@ -679,145 +510,7 @@ action RightLabel
 }
 
 
-action Alternative 
-{
-  int alternativecount;
-  WCString thisValue;
-   if ( $!alternatecount$.Pop(thisValue) ) {
-      alternativecount = thisValue.GetInt();
-        }
-   else {
-      ParseError("Nothing to pop!",WARNING);
-        }
-
-   alternativecount++; //W5-1-97
-
-  thisValue.empty();
-  thisValue.AddInt(alternativecount);
-  $!alternatecount$.Push(thisValue);
-}                                           
-
-
-action Sequence
-{
-   //W5-1-97 last pushed alternative count value is always redundant.
-   WCString thisValue;
-   if ( ! $!alternatecount$.Pop(thisValue) ) {
-      ParseError("No redundant value to pop!",WARNING);
-        }
-}
-
-
-action AlternateSeq
-pre: 
-{
-  //Remember initial count value
-  AlternateSeq_thisValue.AddInt(0);
-  $!alternatecount$.Push(AlternateSeq_thisValue);
-
-   //Reset the AlternateSeq accumulator
-   $!alternateAcc$.GetValue().empty();
-   $!alternateAcc!list$.ClearAttributes();
-
-   AlternateSeq_bLastWasLoop = LastWasLoop();
-   AlternateSeq_bLastWSval   = gSkipWS;
-} 
-post:
-{
-   //If we got his far, we reach the end of an alternative sequence 
-
-   //W5-1-97 Pop previous count value 
-   int alternativecount =0;
-   if ( $!alternatecount$.Pop(AlternateSeq_thisValue) ) {
-      alternativecount = AlternateSeq_thisValue.GetInt();
-   }
-   else {
-      ParseError("AlternateSeq: Nothing to pop!",WARNING);
-   }
-
-   //If the last thing we parsed was a loop, then we don't need to
-   //output anything - 'alternatecount' is empty anyway.
-   if ( LastWasLoop() ) { 
-      return TRUE;
-   }
-
-   if ( !IsFirstInFunction() && AlternateSeq_bLastWSval  && !AlternateSeq_bLastWasLoop ) {
-          fbody() << Tabs << "SkipWS();\n";
-   }
-   
-   WCString actionString;
-
-   if ( IsFirstInLoop() ) {
-      actionString << "break;\n";
-
-      outputAlternateAcc(Tabs, actionString);
-      SetFirstInFunction(FALSE);
-   }
-   else   
-   if ( IsFirstInFunction() || !gDoErr ) {
-      actionString << "return FALSE;\n";
-
-      outputAlternateAcc(Tabs, actionString);
-      SetFirstInFunction(FALSE);
-   }
-   else
-   if ( !alternativecount) {
-      //Only one alternative
-      actionString << "return ParseError(" << FlushError() << ", NOFORCE | ERROR );\n";
-      outputAlternateAcc(Tabs, actionString);
-   }
-   else {
-      //Multiple alternatives
-
-      //W6-1-97 Do alternate push/pop for > 1 alternatives
-      fbody() << Tabs << "SkipAlter_Down();";
-
-      actionString << "return SkipAlter_Up(),ParseError(" << FlushError() << ", NOFORCE | ERROR );\n";
-      outputAlternateAcc(Tabs, actionString);
-
-      fbody() << Tabs << "SkipAlter_Up();";
-   }
-}
-
-
-action linemodifiers
-pre: {
-        # 
-        # Reset modifier flags before line modifiers can be parsed.
-        # This is necessary because the modifiers are mutually exclusive;
-        # if flags are set within modifier pre-conditions, it can (and will)
-        # happen that settings will be passed on to the next line if two
-        # consecutive lines have modifiers. 
-        # This was a very interesting 'feature'.
-        #
-        m_bEntryPoint = false;
-        m_bIgnoreActive = false;
-        m_bTokenActive = false;
-}
-
-
-action entr_ypoint
-{
-   m_bEntryPoint = true;
-   ParseError("Entry point detected.",NOTE);
-}
-
-
-action mod_ignore 
-{
-        m_bIgnoreActive = true;
-   ParseError("Ignore modifier detected.",NOTE);
-}
-
-
-action mod_token
-{
-        m_bTokenActive = true;
-   ParseError("token modifier detected.",INFO);
-}
-
-
-action Line
+action rule
 {
         if ( !m_bDoingDefinition && m_bDoingImplementation) {
            static int count = 0;
@@ -952,46 +645,6 @@ post:
 }
 
 
-action RepPostfix
-{
-        #ParseError("Doing Current token.",NOTE);
-
-        if ( 0 == $CurrentToken$.Length() ) {
-          return ParseError("Expected value for RepPostfix.",ERROR);
-        }
-
-        if ( $.alternateAcc.RepPostfix$.Exists() ) {
-          return ParseError("Statement already has a repeat postfix",ERROR);
-        }
-
-        if ( $.alternateAcc.list$.HasAttributes() ) {
-                CAttributeTree *pAttributes = $.alternateAcc.list$.GetAttributes(); 
-                pAttributes->MoveLast();
-
-                pAttributes->GetCurrent()->Set("RepPostfix").SetValue($CurrentToken$);
-
-            if ( gSkipWS ) {
-                        pAttributes->GetCurrent()->Set("skipWS");
-                 }
-
-        }
-        else {
-          ParseError("Expected attributes for alternateAccStack in RepPostfix.",ERROR);
-        }
-
-        //Remove last character
-        setCurrentToken("");
-}
-
-
-action ActionLabel
-{
-   gLastValue = $CurrentToken$; 
-
-   //Remember this label for the final check on existence
-   $!language![gParserLanguage]!ActionLabels![gLastValue]$;
-}
-
 
 action pre_indicator 
 {
@@ -1044,7 +697,7 @@ post: {
 }
 
 
-action Actionblock 
+action action 
 {
    //W11-3-97 Check if at least one block defined
    if ( !( $.language.[gParserLanguage].Labels.[gLastValue].pre$.Exists() ||
@@ -1441,8 +1094,8 @@ function BOOL outputAlternateAcc(TabType &Tabs, WCString &actionString)
                 //
 
                 //Check for repeat postfixes
-                if ( pElement->Get("RepPostfix").Exists() ) {
-                        WCString repPostfix = pElement->Get("RepPostfix").GetValue();
+                if ( pElement->Get("postfix").Exists() ) {
+                        WCString repPostfix = pElement->Get("postfix").GetValue();
 
                         if ( WCString("+") == repPostfix ) {
 
@@ -1508,7 +1161,7 @@ function BOOL outputAlternateAcc(TabType &Tabs, WCString &actionString)
                           static int count = 0;
                           if ( 0 == count++ ) {
                                 WCString errString;
-                                errString << "Unknown RepPostfix \'" << repPostfix << "\'encountered";
+                                errString << "Unknown postfix \'" << repPostfix << "\'encountered";
                                   ParseError(errString,ERROR);
                           }
                           return FALSE;
@@ -1944,7 +1597,6 @@ function void DoFinalProcessing()
 function void create() {
         //Empty for the time being
 }
-
 
 
 

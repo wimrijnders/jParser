@@ -24,6 +24,8 @@ import java.util.Hashtable;
 public class EBNFValidator {
 
 	public void validate( State state ) throws ParseException {
+		Util.info("Validating...");
+
 		Node root = state.getCurNode();
 
 		//All actions must have a corresponding rule

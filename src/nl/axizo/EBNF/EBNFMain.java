@@ -4,8 +4,7 @@
  */
 package nl.axizo.EBNF;
 
-import nl.axizo.parser.State;
-import nl.axizo.parser.Util;
+import nl.axizo.parser.*;
 
 /**
  * Entry point for generated EBNF class.
@@ -28,15 +27,35 @@ public class EBNFMain {
 		parser.setFirstTwoLines(true);
 		State state = parser.parse();
 
-		parser.saveNodes( state, nodesFile );
-		parser.showFinalResult(state);
+//		parser.saveNodes( state, nodesFile );
+//		parser.showFinalResult(state);
 
 		// Quit if parse errors occured
 		if ( state.hasErrors() ) {
 			System.exit(-1);
+			Util.info( "Errors occured during parsing; skipping translation and generation.");
+		} else {
+			try {	
+				// Validate parse tree
+				EBNFValidator validator = new EBNFValidator();
+				validator.validate( state );
+		
+				//TODO: Translation and generation from this point
+			} catch( ParseException e ) {
+				Util.error("Error during validation/translation/generation: " + e.getMessage() );
+
+				// Nodes output may be handy for debugging
+				parser.saveNodes( state, nodesFile );
+				System.exit(1);
+			}
 		}		
 
-		//TODO: Translation and generation from this point
+
+		parser.saveNodes( state, nodesFile );
+		parser.showFinalResult(state);
+		if ( state.hasErrors() ) {
+			System.exit(1);
+		}
 	}
 
 }

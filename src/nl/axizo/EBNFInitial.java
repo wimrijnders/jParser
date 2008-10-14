@@ -163,7 +163,8 @@ public class EBNFInitial extends BasicParser {
 		return 
 			parseString( "ignore", state )  ||
 			parseString( "entry", state )  ||
-			parseString( "token", state ); 
+			parseString( "token", state )  ||
+			parseString( "skip", state ); 
 	}
 
 	public boolean postfix(State state ) throws ParseException {
@@ -179,6 +180,7 @@ public class EBNFInitial extends BasicParser {
 	public boolean atomicstatement(State state ) throws ParseException {
 		if (
 			s( "literal", state ) ||
+			s( "literal_symbol", state ) ||
 			s( "charset", state ) ||
 			s( "label", state ) ||
 			s( "repeat", state ) ||
@@ -277,33 +279,29 @@ public class EBNFInitial extends BasicParser {
 		return true;
 	}
 
-	public boolean literal_s(State state ) throws ParseException {
+
+	/**
+ 	 * Difference with literal is that literal_symbol should
+ 	 * be left out of the output.
+ 	 */
+	public boolean literal_symbol(State state ) throws ParseException {
 		parseString( "'", state, true, true );
 		s( "literal_chars", state );
 		parseString( "'", state, true, true );
-
-		state.getCurNode().collect();
-		return true;
-	}
-
-	public boolean literal_d(State state ) throws ParseException {
-		parseString( "\"", state, true, true );
-		s( "literal_chars", state );
-		parseString( "\"", state, true, true );
 
 		state.getCurNode().collect();
 		return true;
 	}
 
 	public boolean literal(State state ) throws ParseException {
-		boolean ret =
-			s( "literal_s", state ) ||
-			s( "literal_d", state );
+		parseString( "\"", state, true, true );
+		s( "literal_chars", state );
+		parseString( "\"", state, true, true );
 
 		state.getCurNode().collect();
-
-		return ret;
+		return true;
 	}
+
 
 	public boolean override(State state ) throws ParseException {
 
@@ -787,7 +785,7 @@ public class EBNFInitial extends BasicParser {
 				generator.generate( state );
 	
 			} catch( ParseException e ) {
-				error("Error during translation/generation: " + e.getMessage() );
+				error("Error during validation/translation/generation: " + e.getMessage() );
 
 				// Nodes output may be handy for debugging
 				parser.saveNodes( state, nodesFile );

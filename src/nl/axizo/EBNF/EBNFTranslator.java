@@ -125,6 +125,7 @@ public class EBNFTranslator {
 		Vector res;
 
 		res =  state.getCurNode().findNodes( "literal" );
+		res.addAll( state.getCurNode().findNodes( "literal_symbol" ) );
 		for( int i = 0;  i < res.size(); ++i ) {
 			Node n = (Node) res.get(i);
 		
@@ -252,8 +253,10 @@ public class EBNFTranslator {
 			Node child = n.get(0);
 
 			String call;
-			String param = null;
-			if ( "literal".equals( child.getKey() ) ) {
+			String param1 = null;
+			String param2 = null;
+			if ( "literal".equals( child.getKey() ) 
+				|| "literal_symbol".equals( child.getKey() ) ) {
 				call = "parseString( \"" + child.getValue() + "\", state"; 
 			} else if ( "charset".equals( child.getKey() ) ) {
 				call = "parseCharset( " + child.getValue() + ", state"; 
@@ -263,11 +266,15 @@ public class EBNFTranslator {
 
 			// TODO: add whitespace handling for following blocks
 			if ( !"".equals(repeat) ) {
+				if ( "literal_symbol".equals( child.getKey() ) ) {
+					throw new ParseException("Can't handle repeat postfixes on literal_symbols.");
+				}
+
 				if ( "?".equals( repeat ) ) {
 					// No problem, just don't throw
 					// We signal this by  adding a param as a child
 					// to the call node.
-					param = ", false";
+					param1 = "false";
 				} else if ( "*".equals( repeat ) ) {
 					// Terminating brace gets added during generation
 					call = "do; while (" + call;
@@ -278,13 +285,21 @@ public class EBNFTranslator {
 				}
 			}
 
+
+			// For a literal symbol, no output should be generated
+			// after parsing. Following code takes care of that.
+			if ( "literal_symbol".equals( child.getKey() ) ) {
+				// Enable ignore
+				param2 = "true";
+			}
+
+
 			// Replace statement with call
 			n.setKey( "call" );
 			n.setValue( call );
 			n.removeChildren();
-			if ( param != null ) {
-				n.addChild( "string", param );
-			}
+			if ( param1 != null ) n.addChild( "param1", param1 );
+			if ( param2 != null ) n.addChild( "param2", param2 );
 		}
 	}
 

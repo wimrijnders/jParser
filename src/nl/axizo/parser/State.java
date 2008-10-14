@@ -1,6 +1,10 @@
 /**
  * $Id$
  *
+ * TODO:
+ * =====
+ *
+ * - Check if internal ignore switch is really needed.
  */
 package nl.axizo.parser;
 
@@ -12,6 +16,7 @@ public class State {
 	private State	errstate	= null;
 	private Node    curNode;
 	private boolean skipCurrent = false;
+	private boolean ignoreCurrent = false;
 
 	public State() {
 		curNode = new Node();
@@ -30,7 +35,7 @@ public class State {
 	public void success( State state, boolean ignore ) {
 		curpos = state.curpos;
 
-		if ( !ignore) {
+		if ( !(ignore || state.ignoreCurrent) ) {
 			if ( state.getSkipCurrent() ) {
 				// Store the children of this node instead of the Node itself.
 				curNode.addChildren( state.curNode );
@@ -42,7 +47,7 @@ public class State {
 
 	public void matched( String value, String key, boolean ignore ) {
 		curpos += value.length();
-		if ( !ignore ) {
+		if ( !(ignore || ignoreCurrent) ) {
 			curNode.addChild( key, value);
 		}
 	}
@@ -81,6 +86,8 @@ public class State {
 
 	public void setSkipCurrent(boolean val) { skipCurrent = val; }
 	public boolean getSkipCurrent() { return skipCurrent; }
+	public void setIgnoreCurrent(boolean val) { ignoreCurrent = val; }
+	public boolean getIgnoreCurrent() { return ignoreCurrent; }
 
 	public boolean hasErrors() { 
 		// Succesful completion sets the error pos to the end of file.
