@@ -61,6 +61,39 @@ public class EBNFTranslator {
 		}
 	}
 
+	/**
+ 	 * Remove empty statement nodes.
+ 	 *
+ 	 * Empty statements may be introduced by the skip line modifier.
+ 	 *
+ 	 * While technically correct and handled properly, this just adds
+ 	 * cruft to the parse tree.
+ 	 */
+	private void removeEmptyStatements(State state ) throws ParseException {
+		Vector res =  state.getCurNode().findNodes( "statement" );
+		int count = 0;
+		for( int i = 0;  i < res.size(); ++i ) {
+			Node n = (Node) res.get(i);
+
+			if ( n.numChildren() == 0 ) {
+				Node parent = n.getParent();
+				parent.removeChild( n );
+
+				// Parent is an alternative node (Assumption!)
+				// If it is empty, we can remove it as well.
+				if ( parent.numChildren() == 0 ) {
+					Node granma = parent.getParent();
+					granma.removeChild( parent );
+				}
+
+				count++;
+			}
+		}
+
+		if ( count > 0 ) {
+			Util.info( "Removed " + count + " empty statements.");
+		}
+	}
 
 	/**
  	 * Perform translation steps on charset nodes.
@@ -223,6 +256,43 @@ public class EBNFTranslator {
 	}
 
 
+	/**
+ 	 * Isolate postfixed statements in multiple alternatives as groups.
+ 	 *
+ 	 * Scan for statements with repeat postfixes in an alternative group.
+ 	 * If found, make a separate group for this statement.
+ 	 *
+ 	 * This method must be called before translateGroups().
+ 	 */
+	private void translateRepeatPostfix(State state) {
+		Vector res =  state.getCurNode().findNodes( "alternative" );
+
+		for( int i = 0;  i < res.size(); ++i ) {
+			Node n = (Node) res.get(i);
+	
+			// We're only interested in multiple alternatives	
+			if( n.numChildren() > 1 ) {
+				//Check underlying statements for postfixes
+				for( int j = 0;  j < n.numChildren(); ++j ) {
+					// Assumption: nodes are all of type statement.
+					Node child = n.get(j);
+			
+					if ( !child.get( "postfix" ).isNull() ) {
+						// Found one. Replace with group
+						Node g = new Node("group", "");
+						g.set("statements")
+						 .set("alternative")
+						 .set("statement")
+						 .addChildren(child);
+
+						child.addChild(g);
+						// translateGroups() will handle the isolation of the rule.
+					}
+				}
+			}
+		}
+	}
+
 	private void translateSingleStatement( State state ) throws ParseException {
 		Vector res =  state.getCurNode().findNodes( "statement" );
 
@@ -349,9 +419,11 @@ public class EBNFTranslator {
 
 		translateWS(state);
 
+//		removeEmptyStatements( state );
 		translateCharsets( state);
 		translateLiterals( state);
 
+		translateRepeatPostfix( state);
 		translateGroups( state );
 		translateRepeats( state );
 		translateSingleStatement( state );

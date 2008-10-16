@@ -48,6 +48,17 @@ public class Node {
 		children.add( n );
 	}
 
+	/**
+ 	 * Remove given Node from the current children list.
+ 	 */
+	public void removeChild( Node n ) throws ParseException {
+		if ( !children.remove(n) ) {
+			throw new ParseException( "Node is not child of given parent node." );
+		};
+
+		n.parent = null;
+	}
+
 	public int numChildren() { return children.size(); }
 
 	/**
