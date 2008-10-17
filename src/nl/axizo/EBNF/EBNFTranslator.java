@@ -358,6 +358,8 @@ public class EBNFTranslator {
 
 			// For a literal symbol, no output should be generated
 			// after parsing. Following code takes care of that.
+ 				//I take it back - they SHOULD be present in output 
+ 				
 			if ( "literal_symbol".equals( child.getKey() ) ) {
 				// Enable ignore
 				param2 = "true";

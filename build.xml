@@ -2,6 +2,11 @@
 	$Id$
   -->
 <project name="parser" default="build" basedir=".">
+	<!-- Following is the timer task
+		 source: http://www.jeckle.de/freeStuff/AntTimerTask/index.html
+	  -->
+	<taskdef name="timer" classname="de.jeckle.AntExtension.Timer"/>
+
 	<!-- global properties -->
 	<property name="src"   location="src"/>
 	<property name="build" location="build"/>
@@ -31,6 +36,7 @@
 	</target>
 
 	<target name="run" depends="build">
+	  <timer name="run">
 		<java 
 				classname="nl.axizo.EBNFInitial" 
 				dir="${test}"
@@ -43,6 +49,31 @@
 				<pathelement location="${dist}/lib/parser.jar"/>
 			</classpath>
 		</java>
+	  </timer>
+	</target>
+
+	<target name="parse" depends="build">
+		<description>
+			This task is same as 'run', with the addition
+			two parameters
+		</description>
+
+	  <timer name="parse">
+		<java 
+				classname="nl.axizo.EBNFInitial" 
+				dir="${test}"
+				fork="true"
+				failonerror="true"
+		>
+			<!-- up-dir needed because we start in a subdir -->
+			<arg value="-p"/>
+			<arg value="nodes_parseonly.txt"/>
+			<arg value="../ebnf.ebnf"/>
+			<classpath>
+				<pathelement location="${dist}/lib/parser.jar"/>
+			</classpath>
+		</java>
+	  </timer>
 	</target>
 
 	<target name="doc" depends="build">
@@ -54,7 +85,7 @@
 		</javadoc>
 	</target>
 
-	<target name="test" depends="run" >
+	<target name="compile_test" depends="run" >
 		<echo>Compiling test</echo>
 		<!-- Compile the generated parser -->	
 		<copy file="${src}/nl/axizo/EBNF/EBNFMain.java" 
@@ -66,10 +97,12 @@
 				<pathelement location="${dist}/lib/parser.jar"/>
 			</classpath>
 		</javac>
+	</target>
 
-		<!-- TODO: Following part not completed yet -->
+	<target name="test" depends="compile_test" >
 		<!-- And run the compiled result -->
 		<echo>Running test</echo>
+	  <timer name="test">
 		<java 
 				classname="nl.axizo.EBNF.EBNFMain" 
 				dir="${test}"
@@ -83,6 +116,7 @@
 				<pathelement location="${test}"/>
 			</classpath>
 		</java>
+	  </timer>
 	</target>
 		
 

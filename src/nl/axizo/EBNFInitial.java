@@ -385,11 +385,11 @@ public class EBNFInitial extends BasicParser {
 
 	public boolean ctor_init(State state ) throws ParseException {
 
-		if ( parseString( "(", state, true ) ) {
+		if ( parseString( "(", state, true, true ) ) {
 			WS(state);
 			parseCharset( number_ch, state, true );
 			WS(state);
-			parseString( ")", state, true );
+			parseString( ")", state, true, true );
 		};
 
 		state.getCurNode().collect();
@@ -398,7 +398,7 @@ public class EBNFInitial extends BasicParser {
 
 	public boolean param_init(State state ) throws ParseException {
 
-		parseString( "=", state, true ); 
+		parseString( "=", state, true, true ); 
 		WS(state);
 		if (
 			parseString( "true" , state ) ||
@@ -410,12 +410,28 @@ public class EBNFInitial extends BasicParser {
 		return true;
 	}
 
+	public boolean type_state(State state ) throws ParseException {
+
+		s( "label", state,true );
+
+		state.getCurNode().collect();
+		return true;
+	}
+
+	public boolean member_state(State state ) throws ParseException {
+
+		s( "label", state,true );
+
+		state.getCurNode().collect();
+		return true;
+	}
+
 	public boolean statevar(State state ) throws ParseException {
 		trace( "Entered statevar");
 
-		s( "label", state,true );
+		s( "type_state", state,true );
 		WS(state);
-		s( "label", state, true );
+		s( "member_state", state,true );
 		WS(state);
 
 		if ( s( "param_init", state, false ) ||
@@ -538,8 +554,12 @@ public class EBNFInitial extends BasicParser {
 		// 
 		// Post-action
 		//
+	/*
+ 		TODO: Bit too tough to implement in the generated parser.
+			  Disabled for the time being.
 		Node n = state.getCurNode();
 		n.setValue( "state.getCurNode()" );
+	*/
 
 		return true;
 	}
@@ -634,7 +654,7 @@ public class EBNFInitial extends BasicParser {
 		if( s( "pre_block", state) ) {
 			WS(state);
 
-			if ( parseString( "post:", state, false, true ) ) {
+			if ( parseString( "post:", state, true, true ) ) {
 				WS(state);
 				parseString( "{", state, true, true );
 				s( "action_content", state, true);
@@ -752,15 +772,32 @@ public class EBNFInitial extends BasicParser {
 
 	public static void main(String[] argv) 
 		throws NoSuchMethodException, IllegalAccessException {
-		final String nodesFile = "nodes.txt";
 
-		EBNFInitial parser = new EBNFInitial( argv[0] );
+		String nodesFile = "nodes.txt";
+		boolean parseOnly = false;
+		String nodeFile = "nodes.txt";
+		String inFile;
+
+		// Handle parameters, if any:
+		//
+		//	-p file	- parse only, quit after doing parse stage
+		//			- parse tree is outputted to given file
+		//	file	- input (ebnf) file to parse
+		if ( "-p".equals(argv[0]) ) {
+			parseOnly = true;
+			nodesFile = argv[1];
+			inFile   = argv[2];
+		} else {
+			inFile   = argv[0];
+		}
+
+		EBNFInitial parser = new EBNFInitial( inFile );
 		//parser.setTraceLevel( TRACE );
 		parser.setFirstTwoLines(true);
 		State state = parser.parse();
 
 		//DEBUG
-		if(false) {
+		if( parseOnly) {
 			parser.info("Doing parse only.");
 			parser.saveNodes( state, nodesFile );
 			parser.showFinalResult(state);

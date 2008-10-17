@@ -102,7 +102,16 @@ litchar       = [\all~'"\r\n\\]
 
 token LiteralBlock  = litchar+.      
 
-ignore literal_symbol = "\'" LiteralBlock "\'".
+# literal_symbol-s are meant for the string which are part of the grammar.
+# They usually don't show up in the final parse result.
+# The exception (till now) is the parser itself - it should be able to handle
+# the literal_symbol-s.
+#
+# Under normal circumstances, following should have line modifier 'ignore'.
+token literal_symbol = '\'' LiteralBlock '\''.
+
+# Literals are strings which contain information relevant to output, such as
+# parts of labels.
 token literal        = '\"' LiteralBlock '\"'.
 
 token label   = [_a-zA-Z] [_a-zA-Z0-9]*.
@@ -237,10 +246,11 @@ token number   = Err- noWS ( '+' | '-' )? dec+.
 token type_state = "WCLabels" | "WCString" | "int" | "charset" | "bool".
 token member_state = label.
 oldbool         = "TRUE" | "FALSE".
-token initvalue = number | oldbool | "true" | "false".
-member_var     = type_state member_state ( ('=' initvalue ) | ( '(' initvalue ')')  )?.
-block_state    = { member_var ";" }.
-State          = 'state'  '{' block_state '}' . 
+token param_init = number | oldbool | "true" | "false".
+token ctor_init      = '(' param_init ')'.
+statevar       = type_state member_state ( ('=' param_init ) | ctor_init  )?.
+stateblock     = { statevar ';' }.
+skip State     = 'state'  '{' stateblock '}' . 
 main           = 'int main(int argc, char *argv[])'  '{' noWS code_block '}' .
 
 
@@ -627,64 +637,6 @@ action oldbool
                 bShowedWarning = true;		
         }
 }
-
-action initvalue
-{
-   m_stateVarAcc.actionblock = $CurrentToken$;   //used for init value
-}
-
-action member_var
-pre: {
-   //Clear state var accumulator
-   m_stateVarAcc.empty();
-   m_stateVarAcc.pre_action.empty();   //used for member type
-   m_stateVarAcc.actionblock.empty();  //used for init value
-}
-post:
-{
-   //If we got this far, m_stateVarAcc contains new state var
-   //check if given state var already defined
-   if ( $.language.[gParserLanguage].Statevars.[m_stateVarAcc]$.Exists() )
-     return ParseError(ERR18);
-
-   CAttributeNode &thisAttrib = $!language![gParserLanguage]!Statevars![m_stateVarAcc]$;   
-
-   //Add member type and init value, if present
-   if ( m_stateVarAcc.pre_action.Length() )
-      thisAttrib.Set("membertype").SetValue(m_stateVarAcc.pre_action.GetBuf() );
-
-   if ( m_stateVarAcc.actionblock.Length() ) {
-      thisAttrib.Set("initvalue").SetValue(m_stateVarAcc.actionblock.GetBuf() );
-   }
-   else {
-      //Set default value for known types
-          
-          if ( "bool" == m_stateVarAcc.pre_action) {
-                  thisAttrib.Set("initvalue").SetValue("false");
-          }
-          else
-          if ( "int" == m_stateVarAcc.pre_action ) {
-                thisAttrib.Set("initvalue").SetValue("0");  
-          }
-   }
-}
-
-
-
-action languageblock          //W11-3-97
-{
-   if ( m_bDoingDefinition )
-      $!language![gParserLanguage]!donedefinition$;
-
-   if ( m_bDoingImplementation )
-      $!language![gParserLanguage]!doneimplementation$;
-
-   //Reset parameters for the next language
-   gDoneStateBlock = false;
-   m_bDoingDefinition = false;
-   m_bDoingImplementation = false;
-}
-
 
 #
 # Macro block actions
