@@ -35,7 +35,17 @@
 		<jar jarfile="${dist}/lib/parser.jar" basedir="${build}"/>
 	</target>
 
-	<target name="run" depends="build">
+
+	<!-- TODO: check if following is really useful -->
+	<target name="ebnf_changed" >
+		<uptodate property="ebnf_isUpToDate"
+            srcfile="ebnf.ebnf"
+            targetfile="${test}/EBNF.java"
+		/>
+	</target>
+
+
+	<target name="run" depends="build, ebnf_changed" unless="ebnf_isUpToDate">
 	  <timer name="run">
 		<java 
 				classname="nl.axizo.EBNFInitial" 
@@ -109,6 +119,7 @@
 				fork="true"
 				failonerror="true"
 		>
+			<jvmarg value="-javaagent:/home/wri/Desktop/jip/profile/profile.jar" />
 			<!-- up-dir needed because we start in a subdir -->
 			<arg value="../ebnf.ebnf"/>
 			<classpath>

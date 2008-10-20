@@ -155,16 +155,18 @@ public class BasicParser {
 	protected boolean parseString( String str, State state, boolean doThrow, boolean ignore )
 			throws ParseException {
 
+/* WRI: NOT NEEDED. regionMatches handles this case fine
+ 
 		// Special case end of file handling.
 		// If string to test goes past buffer, there can never be a match
 		if ( state.getCurpos() + str.length() > buffer.length() ) {
 			if ( doThrow ) throw new ParseException();
 			return false;
 		}
-
-		String curStr = buffer.substring( state.getCurpos(), state.getCurpos() + str.length() );
-		if ( curStr.equals( str ) ) {
-			
+*/
+		//String curStr = buffer.substring( state.getCurpos(), state.getCurpos() + str.length() );
+		//if ( curStr.equals( str ) ) {
+		if ( buffer.regionMatches( state.getCurpos(), str, 0, str.length() ) ) {
 			state.matched( str, "string", ignore );
 			return true;
 		} else {

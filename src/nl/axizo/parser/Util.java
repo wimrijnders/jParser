@@ -12,6 +12,8 @@ package nl.axizo.parser;
 import java.io.*;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.Hashtable;
+import java.util.Map;
 
 
 public class Util {
@@ -23,6 +25,7 @@ public class Util {
 	private static int     traceLevel     = INFO;
 	private static boolean showDoneOutput    = false;
 
+	private static Map declaredMethods = new Hashtable(); 
 
 	//////////////////////////////////////////////
 	// Methods for generating tracing output
@@ -76,7 +79,25 @@ public class Util {
 		paramsObj[0] = state;
 
 		// get the method
-		Method thisMethod = caller.getClass().getDeclaredMethod( method, params);
+		Method thisMethod;
+
+/*
+		// Note that we don't differentiate overloads, ie. params not
+		// taken into account in key values.
+		if ( declaredMethods.containsKey( method ) ) {
+			// Found it - use this value
+			//warning( "Found method: " + method );
+			thisMethod = (Method) declaredMethods.get( method );
+		} else {
+			// Not in map; find it dynamically
+			thisMethod = caller.getClass().getDeclaredMethod( method, params);
+
+			// Save the found value
+			declaredMethods.put( method, thisMethod );
+		}
+*/		
+			thisMethod = caller.getClass().getDeclaredMethod( method, params);
+
 		// call the method
 		Boolean ret = (Boolean) thisMethod.invoke( caller , paramsObj);
 
