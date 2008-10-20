@@ -145,7 +145,7 @@ rule           = rule_modifier? label Err- '=' Err+ statements '.' .
 #
 
 skip languageblock  = 'language' label '{' 
-		{ switches | State | action | Function | rule } 
+		{ switches | State | action | function | rule } 
 	'}'. 
 
 usingfile      = noWS [a-zA-Z0-9_]+ ( [.] { [a-zA-Z0-9_] } )?.
@@ -171,8 +171,8 @@ pathname       = realpathname
                 | ( var_start (macro_currenttoken|varname) var_end ).	  
                 #NOTE: order important in second '\|'
 
-set_dot        = '!'.
-get_dot        = '.'.
+set_dot        = "!".
+get_dot        = ".".
 set_path       = set_dot pathname.
 get_path       = get_dot pathname.
 abs_path       = get_path | set_path.
@@ -189,12 +189,13 @@ macro_currenttoken = 'CurrentToken'.
 macro_start    = '$'.
 macro_end      = '$'.
 macro_block    = macro_start (
-                                        macro_foreach | 
-                                        macro_body|  
-                                        macro_forend | 
-                                        macro_currenttoken |
-                                        macro_path 
-                                ) macro_end.
+		macro_foreach | 
+		macro_body|  
+		macro_forend | 
+		macro_currenttoken |
+		macro_path 
+	) macro_end.
+
 skipWS
 
 
@@ -203,12 +204,13 @@ skipWS
 #
 noWS
 #Note explicit removal of '0' in override chars - to catch any hex or oct
-blocklitchar   = [\all~"\r\n\\] | ( '\\' [\all~0] ).      
-blockstring    =  '\"' { blocklitchar } '\"'.
+blocklitchar   = [\all~"\r\n\\] | ( "\\" [\all~0] ).      
+blockstring    =  "\"" { blocklitchar } "\"".
 
 #Order important in following
-blockchar      = comment | blockstring | [\all~{}$].  
-token code_block     = { ( '{' code_block '}' ) | blockchar | macro_block }.
+ignore block_comment = o_comment.
+blockchar      = c_comment | block_comment | blockstring | [\all~{}$].  
+token code_block     = { ( "{" code_block "}" ) | blockchar | macro_block }.
 skipWS
 
 ignore pre_indicator = "pre:". 
@@ -226,16 +228,17 @@ action    = 'action' label  (pre_block ( post_indicator post_block )? ) | post_b
 
 funcchar       =  [_a-zA-Z0-9].
 token funcid   = noWS funcchar+.
-token reference= '&'.
-token pointer  = '*'.
-functype       = funcid ( pointer | reference )?.
-funcvar        = funcid.
+#token reference= "&".
+#token pointer  = "*".
+#functype       = funcid ( pointer | reference )?.
+functype       = funcid ( "*" | "&" )?.
+token funcvar        = funcid.
 token funcname = funcid.
-returntype     = functype .
-funcparam      = functype funcvar.
-token paramlist = '(' ('void' | ( funcparam { ',' funcparam } ) )? ')'.
-funcheader     = returntype funcname  paramlist.
-Function       = 'function' funcheader '{' noWS code_block '}'.
+token returntype     = functype .
+parameter      = functype funcvar.
+paramlist = '(' ('void' | ( parameter { ',' parameter } ) )? ')'.
+skip funcheader     = returntype funcname  paramlist.
+function       = 'function' funcheader '{' noWS code_block '}'.
 
 #
 # State and main
@@ -862,26 +865,6 @@ action funcheader
         setCurrentToken("");
 }
 
-
-action Function
-{
-        if ( m_bDoingDefinition && !m_bDoingImplementation) {
-           static int count = 0;
-
-           if ( 0 == count++ ) {
-              ParseError("One or more Function blocks found in definition block",ERROR);
-           }
-    }
-
-   //All went OK -> store block in attrib tree
-   if ( !$.language.[gParserLanguage].functions.[gLastValue]$.Exists() ) {
-      WCString errString;
-      errString << WCString("Function \'") << gLastValue << "\' Does not exist.";
-      return ParseError(errString, ERROR);
-   }
-
-   $!language![gParserLanguage]!functions![gLastValue]$.SetValue($CurrentToken$);
-}
 
 
 //

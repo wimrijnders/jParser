@@ -30,6 +30,7 @@ public class EBNFInitial extends BasicParser {
 	private Pattern postfix_ch;
 	private Pattern action_ch;
 	private Pattern string_ch;
+	private Pattern stringoverride_ch;
 
 	public EBNFInitial( String filename ) {
 		super( filename );
@@ -48,7 +49,8 @@ public class EBNFInitial extends BasicParser {
 		plusminus_ch    = Pattern.compile( "[+\\-]");
 		postfix_ch      = Pattern.compile( "[?+*]");
 		action_ch       = Pattern.compile( "[\\x00-\\xFF&&[^\"/\\r{}$#]]+");
-		string_ch       = Pattern.compile( "[\\x00-\\xFF&&[^\"\\r\\n]]*");
+		string_ch       = Pattern.compile( "[\\x00-\\xFF&&[^\"\\r\\n\\\\]]");
+		stringoverride_ch = Pattern.compile( "[\\\\'\"rntx]");
 	}
 
 	public boolean WS_intern(State state ) throws ParseException {
@@ -466,6 +468,7 @@ public class EBNFInitial extends BasicParser {
 		s( "label", state, true);
 		parseString( "]", state, true, true );
 
+/* Disabled  for alignment with generated EBNF parser.
 		// 
 		// Post-action
 		//
@@ -473,7 +476,7 @@ public class EBNFInitial extends BasicParser {
 		Node n = state.getCurNode();
 		n.collect();
 		n.setValue( "\" + " + n.getValue() + " + \"");
-
+*/
 		return true;
 	}
 
@@ -490,13 +493,14 @@ public class EBNFInitial extends BasicParser {
 			)
 		);
 
+/* Disabled  for alignment with generated EBNF parser.
 		// 
 		// Post-action
 		//
 		Node n = state.getCurNode();
 		n.collect();
 		n.setValue( "root.getByPath( \"" + n.getValue() + "\")" );
-
+*/
 		return true;
 	}
 
@@ -506,12 +510,12 @@ public class EBNFInitial extends BasicParser {
 		parseString( "foreach", state, true, true );
 
 		// No eol's allowed, only tabs and spaces
-		parseCharset( ts, state, false, true );
+		parseCharset( ts, state, false );
 
 		s( "label", state, true);
-		parseCharset( ts, state, false, true );
+		parseCharset( ts, state, false );
 		parseString( "in", state, true, true );
-		parseCharset( ts, state, false, true );
+		parseCharset( ts, state, false );
 
 		s( "macro_path", state, true);
 
@@ -519,19 +523,20 @@ public class EBNFInitial extends BasicParser {
 		parseString( "$", state, true, true );
 		WS(state);
 		parseString( "$body$", state, true, true );
-		s( "action_content", state, true);
+		s( "code_block", state, true);
 
 		//Note missing trailing $ - it's defined one level up in macro()
 		// This is because this definition also contains the body and end-foreach tags
 		parseString( "$end foreach", state, true, true );
 
+/* Disabled  for alignment with generated EBNF parser.
 		// 
 		// Post-action
 		//
 		Node n = state.getCurNode();
 		Node l = n.get( "label" );
 		Node p = n.get( "macro_path" );
-		Node c = n.get( "action_content" );
+		Node c = n.get( "code_block" );
 		String base = "base" + getNextSeq();
 		String varloop = "i" + getNextSeq();
 		c.collect();
@@ -544,6 +549,7 @@ public class EBNFInitial extends BasicParser {
 			"}\n";
 
 		n.setValue( str );
+*/
 
 		return true;
 	}
@@ -589,17 +595,36 @@ public class EBNFInitial extends BasicParser {
 		return ret;
 	}
 
-	public boolean action_string(State state ) throws ParseException {
-		parseString( "\"", state, true );
-		parseCharset( string_ch, state, true );
-		parseString( "\"", state, true );
+	public boolean blockoverride(State state ) throws ParseException {
+		// Following actually does not parse numeric overrides such as 
+		// '\xff' correctly. The end result is the same, however. Good
+		// enough for the time being.
+		return 
+			parseString( "\\", state ) &&
+			parseCharset( stringoverride_ch, state);
+	}
 
-		state.getCurNode().collect();
+	public boolean blocklitchar(State state ) throws ParseException {
+		do ; while (
+			parseCharset( string_ch, state ) ||
+			s( "blockoverride", state)
+		);
 		return true;
 	}
 
-	public boolean action_content(State state ) throws ParseException {
-		trace( "Entered action_content");
+	public boolean action_string(State state ) throws ParseException {
+		parseString( "\"", state, true );
+		s( "blocklitchar", state, true );
+		parseString( "\"", state, true );
+
+		state.getCurNode().collect();
+
+		trace( "Found action_string: " + state.getCurNode().getValue() );
+		return true;
+	}
+
+	public boolean code_block(State state ) throws ParseException {
+		trace( "Entered code_block");
 
 		// TODO: Following construct presents problems when real errors
 		// are encountered in action_block.
@@ -622,9 +647,7 @@ public class EBNFInitial extends BasicParser {
 		trace( "Entered action_block");
 
 		parseString( "{", state, true );
-
-		s( "action_content", state, true);
-
+		s( "code_block", state, true);
 		parseString( "}", state, true );
 
 		return true;
@@ -634,14 +657,24 @@ public class EBNFInitial extends BasicParser {
 
 		parseString( "pre:", state, true, true );
 		WS(state);
+
 		parseString( "{", state, true, true );
-
-		s( "action_content", state, true);
-
+		s( "code_block", state, true);
 		parseString( "}", state, true, true );
 
 		return true;
 	}
+
+
+	public boolean post_block(State state ) throws ParseException {
+
+		parseString( "{", state, true, true );
+		s( "code_block", state, true);
+		parseString( "}", state, true, true );
+
+		return true;
+	}
+
 
 	public boolean action(State state ) throws ParseException {
 		trace( "Entered action");
@@ -654,11 +687,11 @@ public class EBNFInitial extends BasicParser {
 		if( s( "pre_block", state) ) {
 			WS(state);
 
+			// Symbol 'post:' is only compulsory if a pre-block is present.
+			// For this reason, this symbol is parsed one level higher.
 			if ( parseString( "post:", state, true, true ) ) {
 				WS(state);
-				parseString( "{", state, true, true );
-				s( "action_content", state, true);
-				parseString( "}", state, true, true );
+				s( "post_block", state, true);
 			}
 		} else {
 			// If post-block only, then the post:-prefix
@@ -666,62 +699,99 @@ public class EBNFInitial extends BasicParser {
 			parseString( "post:", state, false, true ); 
 			WS(state);
 
-			parseString( "{", state, true, true );
-			s( "action_content", state, true);
-			parseString( "}", state, true, true );
+			s( "post_block", state, true);
 		}
 
+
+		trace( "Done action '" + state.getCurNode().get("label").getValue() + "'");
 		return true;
 	}
 
-	public boolean parameter(State state ) throws ParseException {
+	public boolean funcid(State state ) throws ParseException {
 		s( "label", state, true);
+
+		state.getCurNode().collect();
+		return true;
+	}
+
+	public boolean functype(State state ) throws ParseException {
+		s( "funcid", state, true);
 		WS(state);
 		if ( 
 			parseString( "&", state ) ||
 			parseString( "*", state )
 		);
-		WS(state);
-		s( "label", state, true);
+
 		return true;
 	}
 
-	public boolean returnval(State state ) throws ParseException {
-		return 
-			parseString( "BOOL", state) ||
-		    parseString( "void", state) ||
-			( s( "label", state ) && WS(state) &&  parseString( "&", state) );
+	public boolean funcvar(State state ) throws ParseException {
+		s( "funcid", state, true);
+
+		state.getCurNode().collect();
+		return true;
 	}
 
-	public boolean function(State state ) throws ParseException {
-		trace( "Entered function");
+	public boolean parameter(State state ) throws ParseException {
+		s( "functype", state, true);
+		WS(state);
+		s( "funcvar", state, true);
+		return true;
+	}
 
-		parseString( "function", state, true, true );
-		WS(state);
-		s( "returnval", state, true);
-		WS(state);
-		s( "label", state, true);
-		WS(state);
-
-		parseString( "(", state, true, true );
-		WS(state);
+	public boolean paramlist(State state ) throws ParseException {
 		if ( parseString( "void", state) ) {
-			// No op
+			//no-op 
 		} else if ( s( "parameter", state) ) {
 			while ( WS(state) && parseString( ",", state, false, true ) ) {
 				WS(state); 
 				s( "parameter", state, true);
 			}
 		}
+
+		return true;
+	}
+
+	public boolean returntype(State state ) throws ParseException {
+		boolean returnval =
+			parseString( "BOOL", state) ||
+		    parseString( "void", state) ||
+			( s( "label", state ) && WS(state) &&  parseString( "&", state) );
+
+		if ( returnval ) state.getCurNode().collect();
+
+		return returnval;
+	}
+
+	public boolean funcname(State state ) throws ParseException {
+		s( "label", state, true);
+		state.getCurNode().collect();
+		return true;
+	}
+
+
+	public boolean function(State state ) throws ParseException {
+		trace( "Entered function");
+
+		parseString( "function", state, true, true );
+		WS(state);
+		s( "returntype", state, true);
+		WS(state);
+		s( "funcname", state, true);
+		WS(state);
+
+		parseString( "(", state, true, true );
+		WS(state);
+		s( "paramlist", state, true);
 		parseString( ")", state, true, true );
 		WS(state);
 
 		parseString( "{", state, true, true );
-		s( "action_content", state, true);
+		s( "code_block", state, true);
 		parseString( "}", state, true, true );
 
 		if ( state.getErrorPos() != -1 ) {
-			trace( "After action_content: Error in " + state.getErrorMethod() + " at: " + 
+			trace( "After code_block: Error in " + state.getErrorMethod() + " at: " + 
 				curLine( state.getErrorPos() ) );
 		}
 
@@ -792,7 +862,7 @@ public class EBNFInitial extends BasicParser {
 		}
 
 		EBNFInitial parser = new EBNFInitial( inFile );
-		//parser.setTraceLevel( TRACE );
+		//parser.setTraceLevel( Util.TRACE );
 		parser.setFirstTwoLines(true);
 		State state = parser.parse();
 
