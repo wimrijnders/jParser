@@ -81,7 +81,6 @@ public class Util {
 		// get the method
 		Method thisMethod;
 
-/*
 		// Note that we don't differentiate overloads, ie. params not
 		// taken into account in key values.
 		if ( declaredMethods.containsKey( method ) ) {
@@ -95,8 +94,9 @@ public class Util {
 			// Save the found value
 			declaredMethods.put( method, thisMethod );
 		}
-*/		
-			thisMethod = caller.getClass().getDeclaredMethod( method, params);
+			// Use following line if found methods not stored
+			// in Map.
+			//thisMethod = caller.getClass().getDeclaredMethod( method, params);
 
 		// call the method
 		Boolean ret = (Boolean) thisMethod.invoke( caller , paramsObj);

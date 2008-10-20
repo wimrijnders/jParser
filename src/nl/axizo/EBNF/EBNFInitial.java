@@ -2,10 +2,14 @@
  * $Id$
  *
  * Initial, handcoded version of EBNF Parser.
+ *
+ * This version was hand-written to start off the bootstrapping
+ * sequence of the EBNF parser.
+ *
  * Name was changed so that there will be no conflict with generated
  * output.
  */
-package nl.axizo;
+package nl.axizo.EBNF;
 
 import nl.axizo.parser.*;
 import nl.axizo.EBNF.*;

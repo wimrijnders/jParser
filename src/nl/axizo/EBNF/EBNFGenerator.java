@@ -109,14 +109,19 @@ public class EBNFGenerator {
 			} else {
 
 				// normal statement
-				String throwParams = ", true";
+				boolean mustReturn = true;
+
+				String throwParams = "";
 
 				// If parameters were passed, use those instead
 				Node param1 = n.get("call").get("param1");
 				Node param2 = n.get("call").get("param2");
 
-				// Param1 overrides default in throwParams
-				if ( !param1.isNull() ) throwParams = "," + param1.getValue();
+				// Param1 overrides default value
+				if ( !param1.isNull() ) {
+					mustReturn = Boolean.getBoolean( param1.getValue() );
+				}
+
 				//Param2 gets appended
 				if ( !param2.isNull() ) throwParams += "," + param2.getValue();
 
@@ -125,11 +130,15 @@ public class EBNFGenerator {
 							+ "' for call to '" + value + "'");
 				}
 
-				out += "\t\t" + value + throwParams + " );\n";
+				if ( mustReturn ) {
+					out += "\t\tif( !" + value + ", false" + throwParams + " ) ) return false;\n";
+				} else {
+					out += "\t\t" + value + ", false" + throwParams + " );\n";
+				}
 			}
 		} else {
 			// more than one child
-			out += "\t\tif (\n";
+			out += "\t\tif( !(\n";
 
 			for( int i = 0; i < n.numChildren(); ++ i ) {
 				Node c = n.get( i );
@@ -149,18 +158,20 @@ public class EBNFGenerator {
 
 				out += c.getValue();
 
+/*
 				// Only final statement in if-block gets to throw
 				boolean doThrow = ( i == n.numChildren() -1 );
 
 				if ( doThrow ) {
 					out += ", true";
 				}
-
+*/
 				out += " )\n";
 			}
 
 
-			out += "\t\t);\n";
+			//out += "\t\t);\n";
+			out += "\t\t) ) return false;\n";
 		}
 
 		return out;

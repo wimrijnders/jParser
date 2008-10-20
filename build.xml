@@ -45,10 +45,10 @@
 	</target>
 
 
-	<target name="run" depends="build, ebnf_changed" unless="ebnf_isUpToDate">
+	<target name="run" depends="build, ebnf_changed" > <!-- unless="ebnf_isUpToDate" -->
 	  <timer name="run">
 		<java 
-				classname="nl.axizo.EBNFInitial" 
+				classname="nl.axizo.EBNF.EBNFInitial" 
 				dir="${test}"
 				fork="true"
 				failonerror="true"
@@ -70,7 +70,7 @@
 
 	  <timer name="parse">
 		<java 
-				classname="nl.axizo.EBNFInitial" 
+				classname="nl.axizo.EBNF.EBNFInitial" 
 				dir="${test}"
 				fork="true"
 				failonerror="true"
@@ -119,7 +119,8 @@
 				fork="true"
 				failonerror="true"
 		>
-			<jvmarg value="-javaagent:/home/wri/Desktop/jip/profile/profile.jar" />
+			<!-- Enable following for profiling output -->
+			<!-- jvmarg value="-javaagent:/home/wri/project/lib/jip/profile/profile.jar" / -->
 			<!-- up-dir needed because we start in a subdir -->
 			<arg value="../ebnf.ebnf"/>
 			<classpath>
