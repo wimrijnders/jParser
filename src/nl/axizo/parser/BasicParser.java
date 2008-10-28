@@ -21,9 +21,24 @@ public class BasicParser {
 
 	private String buffer =  "" ;
 
-	public BasicParser(String filename) {
-		buffer = loadfile( filename );
+	/**
+ 	 * Load the parser buffer.
+ 	 *
+ 	 * @param buffer content to parse, or filename containing content to parse.
+ 	 * @param loadFromFile if true, load contents of given filename. Otherwise, load
+ 	 *                     buffer direct.
+ 	 */
+	public BasicParser(String buffer, boolean loadFromFile) {
+		if ( loadFromFile ) {
+			this.buffer = loadfile( buffer );
+		} else {
+			this.buffer = buffer;
+		}
 		//trace( "curpos: " + curLine( 0 ) );
+	}
+
+	public BasicParser(String filename) {
+		this(filename, true);
 	}
 
 	public static void setDoneOutput   ( boolean val ) { Util.setDoneOutput( val); }

@@ -11,50 +11,49 @@
 	<property name="src"   location="src"/>
 	<property name="build" location="build"/>
 	<property name="dist"  location="dist"/>
-	<property name="doc"   location="doc"/>
-	<property name="test"  location="test"/>
+	<property name="doc"   location="output/doc"/>
+	<property name="out"   location="output"/>
 
 	<target name="init">
 		<!-- Create the time stamp -->
 		<tstamp/>
 		
 		<mkdir dir="${build}"/>
+		<mkdir dir="${build}/jar"/>
+		<mkdir dir="${build}/generated"/>
+		<mkdir dir="${build}/test"/>
 		<mkdir dir="${dist}/lib"/>
-		<mkdir dir="${test}"/>
+		<mkdir dir="${out}"/>
+		<mkdir dir="${out}/generated"/>
+		<mkdir dir="${out}/test"/>
 	</target>
 
 	<target name="compile" depends="init" >
-		<javac srcdir="${src}" destdir="${build}">
+		<javac srcdir="${src}" destdir="${build}/jar">
 
 			<!-- don't compile the main test program at this point -->
 			<exclude name="nl/axizo/EBNF/EBNFMain.java" />
+
+			<!-- No Test classes for the regular build -->
+			<exclude name="nl/axizo/**/*Test.java" />
 		</javac>
 	</target>
 
 	<target name="build" depends="compile" >
-		<jar jarfile="${dist}/lib/parser.jar" basedir="${build}"/>
+		<jar jarfile="${dist}/lib/parser.jar" basedir="${build}/jar"/>
 	</target>
 
 
-	<!-- TODO: check if following is really useful -->
-	<target name="ebnf_changed" >
-		<uptodate property="ebnf_isUpToDate"
-            srcfile="ebnf.ebnf"
-            targetfile="${test}/EBNF.java"
-		/>
-	</target>
-
-
-	<target name="run" depends="build, ebnf_changed" > <!-- unless="ebnf_isUpToDate" -->
+	<target name="run" depends="build" >
 	  <timer name="run">
 		<java 
 				classname="nl.axizo.EBNF.EBNFInitial" 
-				dir="${test}"
+				dir="${out}/generated"
 				fork="true"
 				failonerror="true"
 		>
 			<!-- up-dir needed because we start in a subdir -->
-			<arg value="../ebnf.ebnf"/>
+			<arg value="../../ebnf.ebnf"/>
 			<classpath>
 				<pathelement location="${dist}/lib/parser.jar"/>
 			</classpath>
@@ -71,14 +70,14 @@
 	  <timer name="parse">
 		<java 
 				classname="nl.axizo.EBNF.EBNFInitial" 
-				dir="${test}"
+				dir="${out}/generated"
 				fork="true"
 				failonerror="true"
 		>
 			<!-- up-dir needed because we start in a subdir -->
 			<arg value="-p"/>
 			<arg value="nodes_parseonly.txt"/>
-			<arg value="../ebnf.ebnf"/>
+			<arg value="../../ebnf.ebnf"/>
 			<classpath>
 				<pathelement location="${dist}/lib/parser.jar"/>
 			</classpath>
@@ -99,10 +98,10 @@
 		<echo>Compiling test</echo>
 		<!-- Compile the generated parser -->	
 		<copy file="${src}/nl/axizo/EBNF/EBNFMain.java" 
-			tofile="${test}/nl/axizo/EBNF/EBNFMain.java" 
+			tofile="${out}/generated/nl/axizo/EBNF/EBNFMain.java" 
 		/>
-		<javac destdir="${test}">
-			<src path="${test}"/>
+		<javac destdir="${build}/generated">
+			<src path="${out}/generated"/>
 			<classpath>
 				<pathelement location="${dist}/lib/parser.jar"/>
 			</classpath>
@@ -115,22 +114,85 @@
 	  <timer name="test">
 		<java 
 				classname="nl.axizo.EBNF.EBNFMain" 
-				dir="${test}"
+				dir="${out}"
 				fork="true"
 				failonerror="true"
 		>
 			<!-- Enable following for profiling output -->
 			<!-- jvmarg value="-javaagent:/home/wri/project/lib/jip/profile/profile.jar" / -->
 			<!-- up-dir needed because we start in a subdir -->
+			<arg value="-p"/>
+			<arg value="nodes_test.txt"/>
 			<arg value="../ebnf.ebnf"/>
 			<classpath>
 				<pathelement location="${dist}/lib/parser.jar"/>
-				<pathelement location="${test}"/>
+				<pathelement location="${build}/generated"/>
 			</classpath>
 		</java>
 	  </timer>
 	</target>
+
+	<!-- ************************
+	     * Start Test Suite     *
+	     ************************ -->
+
+	<target name="create_test_suite" depends="compile_test" >
+		<echo>Creating test suite</echo>
+		<description>Tests use the generated EBNF parser output</description>
+
+		<java 
+				classname="nl.axizo.EBNF.EBNFMain" 
+				dir="${out}/test"
+				fork="true"
+				failonerror="true"
+		>
+			<!-- Enable following for profiling output -->
+			<!-- jvmarg value="-javaagent:/home/wri/project/lib/jip/profile/profile.jar" / -->
+			<!-- up-dir needed because we start in a subdir -->
+			<arg value="../../test_suite/digits.ebnf"/>
+			<classpath>
+				<pathelement location="${dist}/lib/parser.jar"/>
+				<pathelement location="${build}/generated"/>
+			</classpath>
+		</java>
+	</target>
 		
+	<target name="test_suite" depends="create_test_suite" >
+		<echo>Compiling test suite</echo>
+
+		<!-- Compile the parsers used for testing -->
+		<javac destdir="${build}/test">
+			<src path="${out}/test"/>
+			<classpath>
+				<pathelement location="${dist}/lib/parser.jar"/>
+			</classpath>
+		</javac>
+
+		<!-- Compile the testing classes -->
+		<javac destdir="${build}/test">
+			<src path="${src}"/>
+			<include name="**/*Test.java" />
+			<classpath>
+				<pathelement location="${dist}/lib/parser.jar"/>
+				<pathelement location="${build}/test"/>
+			</classpath>
+		</javac>
+
+		<echo>Running test suite</echo>
+		<junit printsummary="yes" fork="yes" haltonfailure="yes" showoutput="yes">
+			<formatter type="plain"/>
+			<test name="nl.axizo.test.ParserTest"/>
+			<classpath>
+				<pathelement location="${dist}/lib/parser.jar"/>
+				<pathelement location="${build}/test"/>
+			</classpath>
+		</junit>
+	</target>
+
+	<!-- ************************
+	     * End Test Suite     *
+	     ************************ -->
+
 
 	<target name="clean" >
 	<delete includeemptydirs="true">
@@ -143,7 +205,7 @@
 		<fileset dir="${doc}">
 			<include name="**/*" />
 		</fileset>
-		<fileset dir="${test}" >
+		<fileset dir="${out}" >
 			<include name="**/*" />
 		</fileset>
 	</delete>

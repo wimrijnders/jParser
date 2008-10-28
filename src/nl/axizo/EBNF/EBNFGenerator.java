@@ -7,6 +7,8 @@ package nl.axizo.EBNF;
 import nl.axizo.parser.*;
 import java.io.IOException;
 import java.util.Vector;
+import java.util.Map;
+import java.util.Hashtable;
 
 /**
  *  Generates output from a parse tree.
@@ -28,6 +30,14 @@ public class EBNFGenerator {
 		Node   member_patterns = root.get("temp").get("members");
 		Node   init_patterns   = root.get("temp").get("ctor");
 
+		Map actionMap = getActions(root);
+
+		///////////////////////////////////
+		// Perform the output generation
+		///////////////////////////////////
+	
+
+		// Create the file header.	
 		output += 
 				  "/* THIS FILE IS GENERATED!\n"
 				+ " *\n"
@@ -41,14 +51,16 @@ public class EBNFGenerator {
 				+ "\n"
 				+ "public class " + className + " extends BasicParser {\n\n";
 
+		output += generateState(root);
+
 		int num = member_patterns.numChildren();
 		for( int i = 0;  i < num; ++i ) {
 			output += member_patterns.get(i).getValue();
 		}
 
-		// Generate the constructor
-		output += "\n\n\t" + "public " + className + "(String filename) {\n"
-				+ "\t\tsuper(filename);\n\n";
+		// Generate the constructors
+		output += "\n\n\t" + "public " + className + "(String buffer, boolean loadFromFile) {\n"
+				+ "\t\tsuper(buffer, loadFromFile);\n\n";
 
 		num = init_patterns.numChildren();
 		for( int i = 0;  i < num; ++i ) {
@@ -56,12 +68,15 @@ public class EBNFGenerator {
 		}
 
 		output += "\t}\n\n";
+		output += "\n\n\t" + "public " + className + "(String filename) {\n"
+				+ "\t\tthis(filename, true);\n\n";
+		output += "\t}\n\n";
 
 		// Generate methods
 		Vector rules = root.findNodes("rule");
 		for( int i = 0;  i < rules.size(); ++i ) {
 			Node rule = (Node) rules.get(i);
-			output += generateMethod( rule );
+			output += generateMethod( rule, actionMap );
 		}
 
 		
@@ -216,8 +231,9 @@ public class EBNFGenerator {
 		return "token".equals( rule.get("rule_modifier").get("string").getValue() );
 	}
 
+
 	/**
- 	 * Determine is passed rule node has a skip modifier.
+ 	 * Determine if passed rule node has a skip modifier.
  	 *
  	 * A rule with a skip modifier gets hidden in the output,
  	 * while the generated children of the rule are retained.
@@ -229,19 +245,47 @@ public class EBNFGenerator {
 		return "skip".equals( rule.get("rule_modifier").get("string").getValue() );
 	}
 
+
+	/**
+ 	 * Determine if passed rule node has an ignore modifier.
+ 	 *
+ 	 * A rule with an ignore modifier is not outputted,
+ 	 * including any child nodes.
+ 	 * 
+ 	 * This modifier can be used for e.g. comments in input.
+ 	 *
+ 	 * @param rule node to check for ignore modifier.
+ 	 * @return true if ignore modifier present, false otherwise.
+ 	 */
 	private static boolean ignoreThisRule( Node rule ) {
 		return "ignore".equals( rule.get("rule_modifier").get("string").getValue() );
 	}
 
+
 	/**
  	 * Generate method code from given Node.
  	 */
-	private String generateMethod( Node rule ) {
+	private String generateMethod( Node rule, Map actionMap ) {
 		String name   = rule.get("label").getValue();
 		String output = "";
 
 		output += "\tpublic boolean " + name + "(State state ) throws ParseException {\n" +
 				"\t\ttrace(" + (Util.TRACE -5) + ",\"Called method '" + name + "'.\");\n\n";
+
+		Node pre_node  = null;
+		Node post_node = null;
+		if ( actionMap.containsKey( name ) ) {
+			// Actions present, add a handy reference for the current token.
+			output += "\t\tNode current = state.getCurNode();\n\n";
+
+			Node action = (Node) actionMap.get( name );
+
+			pre_node  = action.get("pre_block" ).get("code_block");
+			if ( pre_node.isNull() ) pre_node = null; 
+
+			post_node = action.get("post_block").get("code_block");
+			if ( post_node.isNull() ) post_node = null; 
+		}
 
 		// Ignore rule flag needs to be set before statements are generated
 		if ( ignoreThisRule( rule ) ) {
@@ -249,11 +293,24 @@ public class EBNFGenerator {
 				"\t\tstate.setIgnoreCurrent( true );\n\n";
 		}
 
+		if ( pre_node != null ) {
+			output += "\t\t// Pre actions\n"
+					+ pre_node.getValue()
+					+ "\n\t\t// End Pre actions\n\n";
+		}
+
 		output += generateStatements( rule );
 
 		if ( isTokenRule( rule) ) {
 			output += "\n\t\tstate.getCurNode().collect();\n";
 		}
+
+		if ( post_node != null ) {
+			output += "\n\t\t// Post actions\n"
+					+ post_node.getValue()
+					+ "\n\t\t// End Post actions\n";
+		}
+
 
 		if ( skipThisRule( rule ) ) {
 			output += "\n\t\t// replace this node with its children\n" +
@@ -267,6 +324,40 @@ public class EBNFGenerator {
 
 		return output;
 	}
+
+	private String generateState( Node root ) throws ParseException {
+		String out = "";
+
+		Node stateNode = root.get("language").get("stateblock");
+
+		if ( stateNode.isNull() ) {
+			Util.info("No stateblock found, skipping generation.");
+			return out;
+		} else {
+			Util.info("Stateblock found.");
+		}
+
+		out += "\t// Start State variables\n";
+
+		Vector vars = stateNode.findNodes( "statevar" );
+		for( int i = 0; i < vars.size(); ++ i ) {
+			Node n = (Node) vars.get(i);
+
+			out += "\tprivate " + n.get("type_state").getValue()
+				+  " " + n.get("member_state").getValue();
+
+			if ( !n.get("param_init").isNull() ) {
+				out += " = " +  n.get("param_init").getValue();
+			}
+
+			out += ";\n";
+		}
+
+		out += "\t// End State variables\n\n";
+
+		return out;
+	}
+
 
 	/**
  	 * Detect entry point for the parse and generate code for calling it.
@@ -301,8 +392,8 @@ public class EBNFGenerator {
 
 		// Generate the corresponding code.
 		String out =
-		"	protected State parse()\n" +
-		"		throws NoSuchMethodException, IllegalAccessException {\n" +
+		"	public State parse() {\n" +
+//		"		throws NoSuchMethodException, IllegalAccessException {\n" +
 		"\n" +
 		"		State state = new State();\n" +
 		"\n" +
@@ -322,5 +413,29 @@ public class EBNFGenerator {
 
 		return out;
 	} 
+
+
+	/**
+ 	 * Create a Map of all actions.
+ 	 *
+ 	 * Actions need to be associated with the corresponding rules.
+ 	 * Since the rules are iterated over, a map for the actions 
+ 	 * is sensible. This cuts down the search time for actions.
+ 	 */
+	private Map getActions(Node root) {
+		Map ret = new Hashtable();
+
+		Vector res =  root.findNodes( "action" );
+		for( int i = 0;  i < res.size(); ++i ) {
+			Node n = (Node) res.get(i);
+
+			// Action name used  as key
+			String ruleName = n.get("label").getValue();
+
+			ret.put( ruleName, n);
+		}
+
+		return ret;
+	}
 }
 

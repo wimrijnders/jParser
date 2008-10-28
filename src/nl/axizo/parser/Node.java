@@ -28,6 +28,7 @@ public class Node {
 	public Node   getParent() { return parent; }
 	public String getKey()    { return key; }
 
+
 	/**
  	 * Change the value of the key.
  	 *

@@ -1,0 +1,39 @@
+#
+# Simple language definition for test purposes
+#
+# This definition tests the use of actions for rules
+#
+language digits {
+
+digit = [0-9].
+entry file = digits+.
+
+#
+# Test: state variables
+#
+state {
+	int digit_entry = 0;
+	int digit_count = 0;
+}
+
+#
+# Test: pre- and postactions
+#
+action digit 
+pre: {
+	digit_entry++;
+}
+post: {
+	digit_count = 0;
+}
+
+#
+# Test: No preaction, postaction only.
+#
+action file {
+	Node result = current.set("Result");
+	result.set("entry", "" + digit_entry);
+	result.set("count", "" + digit_count);
+}
+
+}

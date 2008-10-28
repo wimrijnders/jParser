@@ -870,7 +870,6 @@ public class EBNFInitial extends BasicParser {
 		parser.setFirstTwoLines(true);
 		State state = parser.parse();
 
-		//DEBUG
 		if( parseOnly) {
 			parser.info("Doing parse only.");
 			parser.saveNodes( state, nodesFile );

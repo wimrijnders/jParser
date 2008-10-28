@@ -20,19 +20,38 @@ public class EBNFMain {
 
 	public static void main(String[] argv) 
 		throws NoSuchMethodException, IllegalAccessException {
-		final String nodesFile = "nodes_test.txt";
+		String nodesFile = "nodes.txt";
+		boolean parseOnly = false;
+		String nodeFile = "nodes.txt";
+		String inFile;
 
-		EBNF parser = new EBNF( argv[0] );
+		// Handle parameters, if any:
+		//
+		//	-p file	- parse only, quit after doing parse stage
+		//			- parse tree is outputted to given file
+		//	file	- input (ebnf) file to parse
+		if ( "-p".equals(argv[0]) ) {
+			parseOnly = true;
+			nodesFile = argv[1];
+			inFile   = argv[2];
+		} else {
+			inFile   = argv[0];
+		}
+
+		EBNF parser = new EBNF( inFile );
 //		parser.setTraceLevel( Util.TRACE );
 		parser.setFirstTwoLines(true);
 		State state = parser.parse();
 
-//		parser.saveNodes( state, nodesFile );
-//		parser.showFinalResult(state);
+		if( parseOnly) {
+			Util.info("Doing parse only.");
+			parser.saveNodes( state, nodesFile );
+			parser.showFinalResult(state);
+			return;
+		}
 
 		// Quit if parse errors occured
 		if ( state.hasErrors() ) {
-			System.exit(-1);
 			Util.info( "Errors occured during parsing; skipping translation and generation.");
 		} else {
 			try {	
@@ -40,7 +59,14 @@ public class EBNFMain {
 				EBNFValidator validator = new EBNFValidator();
 				validator.validate( state );
 		
-				//TODO: Translation and generation from this point
+				// Do node translations
+				EBNFTranslator translator = new EBNFTranslator();
+				translator.translate( state );
+	
+				// Create output
+				EBNFGenerator generator = new EBNFGenerator();
+				generator.generate( state );
+	
 			} catch( ParseException e ) {
 				Util.error("Error during validation/translation/generation: " + e.getMessage() );
 
