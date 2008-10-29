@@ -1,5 +1,7 @@
 #
-# Simple language definition for test purposes
+# $Id$
+#
+# Simple language definition for unit testing.
 #
 # This definition tests the use of actions for rules.
 # Note that WS handling is enabled as default. This is part of the test.
