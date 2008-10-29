@@ -136,7 +136,7 @@
 	     * Start Test Suite     *
 	     ************************ -->
 
-	<target name="create_test_suite" depends="compile_test" >
+	<target name="create_test_suite" depends="compile_test, build" >
 		<echo>Creating test suite</echo>
 		<description>Tests use the generated EBNF parser output</description>
 
@@ -200,9 +200,6 @@
 			<include name="**/*" />
 		</fileset>
 		<fileset dir="${dist}">
-			<include name="**/*" />
-		</fileset>
-		<fileset dir="${doc}">
 			<include name="**/*" />
 		</fileset>
 		<fileset dir="${out}" >

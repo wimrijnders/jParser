@@ -58,7 +58,9 @@ public class EBNFGenerator {
 			output += member_patterns.get(i).getValue();
 		}
 
+		//
 		// Generate the constructors
+		// 
 		output += "\n\n\t" + "public " + className + "(String buffer, boolean loadFromFile) {\n"
 				+ "\t\tsuper(buffer, loadFromFile);\n\n";
 
@@ -72,7 +74,27 @@ public class EBNFGenerator {
 				+ "\t\tthis(filename, true);\n\n";
 		output += "\t}\n\n";
 
+		//
+		// If WS_intern not present, add default implementation
+		//
+		// This is actually WS (if present), renamed to WS_intern
+		// in the Translator step.
+		//
+		
+		//Check if WS is present
+		Vector ws_intern = root.findNodesByValue("WS_intern");
+		if ( ws_intern.size() == 0 ) {
+			Util.info("No internal WS present. Creating default implementation.");
+
+			output += "\tpublic boolean WS_intern(State state ) throws ParseException {\n"
+					+ "\t\treturn super.WS_intern(state);\n"
+					+ "\t}\n\n";
+		}
+
+
+		//
 		// Generate methods
+		//
 		Vector rules = root.findNodes("rule");
 		for( int i = 0;  i < rules.size(); ++i ) {
 			Node rule = (Node) rules.get(i);
@@ -197,6 +219,11 @@ public class EBNFGenerator {
 		String out = "";
 		boolean isFirst = true;
 
+		// Special case, WS_intern should not handle whitespace 
+		// internally
+		boolean isWS_intern = "WS_intern".equals( n.get("label").getValue());
+		boolean warnedAboutWS = false;
+
 		out += "\t\t// Generated parsing code\n";
 		for( int i = 0; i < body.numChildren(); ++ i ) {
 			Node c = body.get( i );
@@ -212,6 +239,13 @@ public class EBNFGenerator {
 
 			// Flag for determining if whitespace should be handled automatically
 			boolean doWS = "skipWS".equals( c.getValue() );
+
+			if ( doWS && isWS_intern && !warnedAboutWS ) {
+				Util.warning( "Disabling WS handling within WS function.");
+				warnedAboutWS = true;
+			}
+
+			if ( isWS_intern) doWS = false;
 
 			out += generateAlternative( c, doWS, isFirst );
 			isFirst = false;
@@ -402,7 +436,10 @@ public class EBNFGenerator {
 		"			while ( !eol(state.getCurpos() ) ) {\n" +
 		"				WS(state);\n" +
 		"\n" +
-		"				if ( !s( \"" + entry_label + "\", state ) ) break;\n" +
+		"				if ( !s( \"" + entry_label + "\", state ) ) {\n" +
+		"					state.setError( \"end of parsing\" );\n" +
+		"					break;\n" +
+		"				}\n" +
 		"			}\n" +
 		"		} catch ( ParseException e ) {\n" +
 		"			error( \"Exception: \" + e.toString() );\n" +

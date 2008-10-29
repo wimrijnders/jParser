@@ -14,12 +14,17 @@ import java.lang.reflect.Method;
 import java.lang.reflect.InvocationTargetException;
 import java.util.regex.*;
 import java.util.Vector;
+import java.util.regex.Pattern;
+
 
 public class BasicParser {
 	private static boolean showFirstTwoLines = false;
 	private static int     seqNr          = 1;
 
 	private String buffer =  "" ;
+
+	private Pattern whitespace;
+
 
 	/**
  	 * Load the parser buffer.
@@ -29,6 +34,9 @@ public class BasicParser {
  	 *                     buffer direct.
  	 */
 	public BasicParser(String buffer, boolean loadFromFile) {
+
+		whitespace      = Pattern.compile( "[ \r\n\t]+");
+
 		if ( loadFromFile ) {
 			this.buffer = loadfile( buffer );
 		} else {
@@ -89,7 +97,7 @@ public class BasicParser {
 	 * Return the line in the buffer starting at given position, and also 
 	 * the entire next line.
 	 */
-	protected String curLine(int curpos) {
+	public String curLine(int curpos) {
 		String ret = "";
 
 		// Find second EOL starting from curPos
@@ -284,13 +292,21 @@ public class BasicParser {
 
 
 	/**
+ 	 * Default implementation of whitespace.
+ 	 *
+ 	 * Skip tabs, end of lines and spaces.
+ 	 *
+ 	 * This whitespace handling is enabled by default. Differing
+ 	 * implementations should be overridden in subclasses.
+ 	 */
+	public boolean WS_intern(State state ) throws ParseException {
+		parseCharset( whitespace, state);
+		return true;
+	}
+
+
+	/**
  	 * Default WS rule for all parsers.
- 	 *
- 	 * Should always work, even if the internal rule WS_intern 
- 	 * is not present.
- 	 *
- 	 * If no WS defined in the derived parser classes, this
- 	 * method does nothing.
  	 */
 	protected boolean WS(State state ) throws ParseException {
 

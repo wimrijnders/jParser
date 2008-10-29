@@ -265,6 +265,28 @@ public class Node {
 		return ret;
 	} 
 
+	/**
+ 	 * Search nodes depth-first and return all nodes
+ 	 * with the value equal to the given parameter.
+ 	 *
+ 	 * @param label key to search for
+ 	 */
+	public Vector findNodesByValue( String value ) {
+		Vector ret = new Vector();
+
+		for ( int i =0; i < children.size(); ++i ) {
+			Node n = (Node) children.get(i);
+			ret.addAll( n.findNodesByValue(value) );
+		}
+
+		if ( this.value.equals( value ) ) {
+			ret.add( this );
+		}
+
+		return ret;
+	} 
+
+
 	public String toString() {
 		return key + ": " + value + ": " + children.size() + " children";
 	}

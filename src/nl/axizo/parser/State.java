@@ -74,8 +74,25 @@ public class State {
 		}
 		
 		// Keep hold of state with error, so that we can generate
-		// node output later on
+		// node output later on.
+		// TODO: This is probably not very useful. Check if it 
+		//       is necessary.
 		errstate = state;
+	}
+
+
+	/**
+	 * Flag a general error situation.
+	 *
+	 * This call is used to set error situations which fall outside
+	 * of the parsing methods. Specifically, this call is used when 
+	 * parsing completes before the end of the buffer is reached.
+	 */
+	public void setError(String method) {
+		// HACK: hasErrors checks if errpos and curpos are equal
+		// the -1 compensated for this.
+		errpos = getCurpos() -1;
+		errmethod = method;
 	}
 
 	public int    getCurpos()      { return curpos; }
@@ -91,7 +108,8 @@ public class State {
 
 	public boolean hasErrors() { 
 		// Succesful completion sets the error pos to the end of file.
-		// Need to take that into account
+		// Need to take that into account. Can't be done here, because
+		// the buffer is not known within a state instance.
 		return getErrorPos() != getCurpos() && getErrorPos() != -1; 
 	}
 
@@ -111,7 +129,7 @@ public class State {
 	public String getOutput(boolean showFirstTwoLines) {
 		State state = this;
 
-		if ( hasErrors() ) {
+		if ( hasErrors() && errstate != null ) {
 			state = errstate;
 		}
 

@@ -1,12 +1,13 @@
 #
 # Simple language definition for test purposes
 #
-# This definition tests the use of actions for rules
+# This definition tests the use of actions for rules.
+# Note that WS handling is enabled as default. This is part of the test.
 #
 language digits {
 
 digit = [0-9].
-entry file = digits+.
+entry file = digit+.
 
 #
 # Test: state variables
@@ -24,7 +25,7 @@ pre: {
 	digit_entry++;
 }
 post: {
-	digit_count = 0;
+	digit_count++;
 }
 
 #
