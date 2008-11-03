@@ -56,7 +56,7 @@ public class EBNFValidator {
 		Map    rules   = collectRuleLabels( root);
 
 		// Rightlabel must be defined as rules
-		checkRightLabels(root, rules);
+		Map    rlabels = checkRightLabels(root, rules);
 
 		//All actions must have a corresponding rule
 		for( int i = 0;  i < actions.size(); ++i ) {
@@ -67,6 +67,25 @@ public class EBNFValidator {
 			}
 		}
 
+		// All rules should be used somewhere, unless they are
+		// an entry point or WS
+		// TODO: Consider making this an error.
+		String [] rulenames = (String []) rules.keySet().toArray( new String[0] ) ;
+		for( int i = 0;  i < rulenames.length; ++i ) {
+		
+			// Special case WS has default definition - not compulsory
+			if ( "WS".equals( rulenames[i] ) ) continue;
+	
+			String value = (String) rules.get( rulenames[i] );
+			if ( "entry".equals( value ) ) {
+				// It's an entry point - ignore
+				continue;
+			}
+
+			if (!rlabels.containsKey( rulenames[i] ) ) { 
+				addError( "Rule '" + rulenames[i] + "' not used anywhere.");
+			}
+		}
 		
 		// We're done. Report errors if any
 		if ( hasErrors() ) {
@@ -103,8 +122,16 @@ public class EBNFValidator {
 			if ( ret.containsKey( ruleName ) ) {
 				addError( "Rule " + ruleName + " present more than once.");
 			} else {
-				// only key presence is important, value is something not null.
-				ret.put( ruleName, "1");
+				String value = "1";
+
+				if ( !n.get("rule_modifier").get("string").isNull() ) {
+					if ( "entry".equals( n.get("rule_modifier").get("string").getValue() ) ) {
+						// It's an entry point
+						value = "entry";;
+					}
+				}
+
+				ret.put( ruleName, value);
 			}
 		}
 
@@ -119,7 +146,7 @@ public class EBNFValidator {
  	 * used in the right hand side of rules. These should
  	 * be names of existing rules.
  	 */
-	private void checkRightLabels(Node root, Map rules) throws ParseException {
+	private Map checkRightLabels(Node root, Map rules) throws ParseException {
 		Util.info("Validating rightLabels.");
 
 		Vector rightLabels = new Vector();
@@ -148,6 +175,17 @@ public class EBNFValidator {
 						+ "is not defined as a rule.");
 			}
 		}
+
+		// As a side effect, generate a map of all rightlabels
+		Map ret = new Hashtable();
+		for( int i = 0;  i < rightLabels.size(); ++i ) {
+			Node n = (Node) rightLabels.get(i);
+			String label = n.get("label").getValue();
+
+			ret.put( label, "1");
+		}
+
+		return ret;
 	}
 
 

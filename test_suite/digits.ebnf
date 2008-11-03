@@ -3,12 +3,14 @@
 #
 # Simple language definition for unit testing.
 #
-# This definition tests the use of actions for rules.
+# This definition tests the use of actions for rules and the native code block,
+# which is used for defining local functions.
+#
 # Note that WS handling is enabled as default. This is part of the test.
 #
 language digits {
 
-digit = [0-9].
+token digit = [0-9].
 entry file = digit+.
 
 #
@@ -17,6 +19,7 @@ entry file = digit+.
 state {
 	int digit_entry = 0;
 	int digit_count = 0;
+	int digit_sum   = 0;
 }
 
 #
@@ -28,6 +31,7 @@ pre: {
 }
 post: {
 	digit_count++;
+	sum( current.getValue() );
 }
 
 #
@@ -37,6 +41,27 @@ action file {
 	Node result = current.set("Result");
 	result.set("entry", "" + digit_entry);
 	result.set("count", "" + digit_count);
+	result.set("sum"  , "" + digit_sum);
+}
+
+#
+# Native code test.
+# Commented braces added intentionally, parser should be 
+# able to handle it.
+#
+# Note that /* */ comments are not handled yet.
+# TODO: enable this.
+#
+code {
+	// }
+
+	private void sum( String val ) {	
+		# {
+		digit_sum += Integer.parseInt( val );
+		// {
+	}
+
+	# }
 }
 
 }

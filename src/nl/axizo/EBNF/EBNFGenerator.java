@@ -101,6 +101,16 @@ public class EBNFGenerator {
 			output += generateMethod( rule, actionMap );
 		}
 
+
+		//
+		// Add native code, if present
+		// 
+		Node native_code = root.get("language").get("native_code");
+		if ( !native_code.isNull() ) {
+			output += "\n\t// Start native code\n"
+					+ native_code.getValue()
+					+ "\n// End native code\n\n";
+		}
 		
 		output += generateEntryPoint(root ); 
 

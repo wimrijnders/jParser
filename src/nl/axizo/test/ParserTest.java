@@ -18,13 +18,16 @@ public class ParserTest extends TestCase {
 		digits parser = new digits("1029\n382134    \t240667", false);
 		State state = parser.parse();
 		
+		//out( state.getCurNode().show() );
+
 		String count = state.getCurNode().get("file").get("Result").get("count").getValue();
+		String sum   = state.getCurNode().get("file").get("Result").get("sum").getValue();
 		out( "count: " + count );
+		out( "sum  : " + sum );
 
 		Assert.assertFalse( state.hasErrors() );
-		Assert.assertTrue( 16 == Integer.parseInt( count ) ); 
-
-		//out( state.getCurNode().show() );
+		Assert.assertEquals( new Integer(16),  new Integer( count ) ); 
+		Assert.assertEquals( new Integer(58),  new Integer(   sum ) ); 
 	}
 
 

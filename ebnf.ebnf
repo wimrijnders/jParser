@@ -1,39 +1,7 @@
 #######################################################################
 # $Id$ 
 #
-# For reserved words#characters till now, view the language definition.
-#
-#######################################################################
-# Output in general:
-#
-# header
-# class declaration
-# {
-#    internal ParseBlock() routines
-#    internal helper routines
-#    state variables 
-#    function declarations
-# }
-#
-# global parser object
-# main()
-# member functions of parser class
-# Listing of final attribute tree
-# [end-output]
-#
-#######################################################################
-# Output from EBNF definitions:
-#									
-# Logically a list of functions with the following layout:
-#
-# header: BOOL Parse_(is)
-# {							
-#    Local declarations   : fconst
-#    pre-Action block
-#    Parsing block     : fbody
-#    post-Action block
-#    return TRUE;
-# }
+# For reserved words and characters till now, view the language definition.
 #
 #######################################################################
 # Precedence, highest to lowest:
@@ -41,42 +9,21 @@
 #    [],{}
 #    '|'   - left to right
 #######################################################################
-# NOTES:
-# ======
-#
-# * Use of BUILD an BOOTSTRAP version numbers:
-#
-#   There is a subtle difference for the two version numbers I use for
-#   this file. One does not exclude the other, nor does it demand an
-#   update of the other. 
-#
-#   - BOOTSTRAP: If the language changes to such an extent that I had to use
-#     the bootstrapped version of the parser to make it work properly, I raise 
-#     this version number by one ( eg. a new keyword is added). In a sense, this
-#     statement is contradictory: how can you make the bootstrap if you don't
-#     have the bootstrapped version? Don't you just love bootstrapping?
-#
-#   - BUILD: this version number is incremented if I make an adjustment in the
-#     supporting code (eg. add extra functionality or solve a bug).
-#
-#   Having said all this, I usually don't bother with version numbers for
-#   minor changes.
-#
-#######################################################################
 
 #TEST: using language file ebnfdef.ebnf.
 
-language EBNF
-{
+language EBNF {
+
 noWS
+
 ignore SetError      = "Err" [+\-].
-token modifier_WS   =  "skipWS" | "noWS".
-SetCase       = "matchCase" [+\-].
-skip switches      = SetError | modifier_WS | SetCase.
-o_comment     = Err+ "#" { [\all~\r\n] } [\r\n].
-c_comment     = Err- "//" { [\all~\r\n] } [\r\n].
-token comment       = o_comment | c_comment.
-ignore WS     = { comment | [ \t\n\r] }.
+token  modifier_WS   =  "skipWS" | "noWS".
+       SetCase       = "matchCase" [+\-].
+skip   switches      = SetError | modifier_WS | SetCase.
+       o_comment     = Err+ "#" { [\all~\r\n] } [\r\n].
+       c_comment     = Err- "//" { [\all~\r\n] } [\r\n].
+token  comment       = o_comment | c_comment.
+ignore WS            = { comment | [ \t\n\r] }.
 
 //Character definitions
 overridechar  = [\)\-\~\\\]].               
@@ -89,7 +36,7 @@ dec           = [0123456789].
 ExtChar       = [rnt] | overridechar | (dec dec dec) .
 anychar       = any | ( "\\" ExtChar). 
 
-//Definitions EBNF extensions 
+# Definitions EBNF extensions 
 csallchars    = "\\all".
 token range       = csallchars | ( anychar  ( "-"  anychar )?  ).
 
@@ -121,7 +68,6 @@ skipWS
 //Basic WEBNF stuff
 skip basicstatement = charset | literal| literal_symbol | label.
 group          = statements.
-ConditionalSeq = statements.
 repeat         = statements.
 
 token postfix     = [+*?].
@@ -145,62 +91,19 @@ rule           = rule_modifier? label Err- '=' Err+ statements '.' .
 #
 
 skip languageblock  = 'language' label '{' 
-		{ switches | State | action | function | rule } 
+		{ switches | State | action | rule  | native_code } 
 	'}'. 
 
 usingfile      = noWS [a-zA-Z0-9_]+ ( [.] { [a-zA-Z0-9_] } )?.
 languagefile   = Err- "using"  "language" "file" usingfile ".".
 includefile    = "using"  "include" "file" usingfile ".".
 
-#Entry point - note that there should not be more than one main-block
-entry language = {languagefile|includefile}  languageblock {languagefile} main?  {languagefile}.
-
-#
-# Macro blocks (actually part of action blocks)
-#
-
-noWS
-TS             = [ \t]+.                #TabSpace
-macrochar      = [a-zA-Z0-9_].
-macroid        = macrochar+.
-varname        = macroid.
-realpathname   = macroid.
-var_start      = '['.
-var_end        = ']'.
-pathname       = realpathname 
-                | ( var_start (macro_currenttoken|varname) var_end ).	  
-                #NOTE: order important in second '\|'
-
-set_dot        = "!".
-get_dot        = ".".
-set_path       = set_dot pathname.
-get_path       = get_dot pathname.
-abs_path       = get_path | set_path.
-rel_path			= varname.
-macro_path     = abs_path | rel_path { get_path | set_path }.
-
-attrpoint      = macroid.
-macro_foreach  = 'foreach' TS attrpoint TS 'in' TS macro_path.
-macro_body     = 'body'.
-macro_forend   = 'end' noWS TS 'foreach'.
-
-macro_currenttoken = 'CurrentToken'.
-
-macro_start    = '$'.
-macro_end      = '$'.
-macro_block    = macro_start (
-		macro_foreach | 
-		macro_body|  
-		macro_forend | 
-		macro_currenttoken |
-		macro_path 
-	) macro_end.
-
-skipWS
-
+#Entry point
+entry language = {languagefile|includefile}  languageblock {languagefile}.
 
 #
 #Action blocks:
+#
 #
 noWS
 #Note explicit removal of '0' in override chars - to catch any hex or oct
@@ -210,7 +113,7 @@ blockstring    =  "\"" { blocklitchar } "\"".
 #Order important in following
 ignore block_comment = o_comment.
 blockchar      = c_comment | block_comment | blockstring | [\all~{}$].  
-token code_block     = { ( "{" code_block "}" ) | blockchar | macro_block }.
+token code_block     = { ( "{" code_block "}" ) | blockchar }.
 skipWS
 
 ignore pre_indicator = "pre:". 
@@ -222,31 +125,20 @@ post_block = '{' noWS code_block '}'.
 
 action    = 'action' label  (pre_block ( post_indicator post_block )? ) | post_block.
 
-#
-# Functions
-#
-
-funcchar       =  [_a-zA-Z0-9].
-token funcid   = noWS funcchar+.
-#token reference= "&".
-#token pointer  = "*".
-#functype       = funcid ( pointer | reference )?.
-functype       = funcid ( "*" | "&" )?.
-token funcvar        = funcid.
-token funcname = funcid.
-token returntype     = functype .
-parameter      = functype funcvar.
-paramlist = '(' ('void' | ( parameter { ',' parameter } ) )? ')'.
-skip funcheader     = returntype funcname  paramlist.
-function       = 'function' funcheader '{' noWS code_block '}'.
 
 #
-# State and main
+# Native code block
+#
+token native_code = 'code' '{' noWS code_block '}'.
+
+
+#
+# State 
 #
 
 # Definitions state extended, to allow for proper definition of constructor
 token number   = Err- noWS ( '+' | '-' )? dec+.
-token type_state = "WCLabels" | "WCString" | "int" | "charset" | "bool".
+token type_state = "int" | "charset" | "bool".
 token member_state = label.
 oldbool         = "TRUE" | "FALSE".
 token param_init = number | oldbool | "true" | "false".
@@ -254,540 +146,11 @@ token ctor_init      = '(' param_init ')'.
 statevar       = type_state member_state ( ('=' param_init ) | ctor_init  )?.
 stateblock     = { statevar ';' }.
 skip State     = 'state'  '{' stateblock '}' . 
-main           = 'int main(int argc, char *argv[])'  '{' noWS code_block '}' .
 
 
-///////////////////////////////////////////////////////////////
-// Functions
-///////////////////////////////////////////////////////////////
-
-
-function BOOL outputAlternateAcc(TabType &Tabs, WCString &actionString)
-{
-        int tabCount = 0;
-        int numItems = ($.alternateAcc.list$.HasAttributes())?( $.alternateAcc.list$.GetAttributes()->GetNumItems() ):0;
-        int bDoTabIncrement = FALSE;
-
-        BOOL bIsConditional = FALSE;
-
-         //Output the list
-         $foreach pElement in .alternateAcc.list$
-         $body$
-
-                //
-                // NOTE: repeat postfixes and exceptions exclude each other in the syntax
-                //
-
-                //Check for repeat postfixes
-                if ( pElement->Get("postfix").Exists() ) {
-                        WCString repPostfix = pElement->Get("postfix").GetValue();
-
-                        if ( WCString("+") == repPostfix ) {
-
-                                fbody() << Tabs << "if (";
-                                makeFunctionCallFromAlternateAccElement(pElement, FALSE);
-                                fbody()	<< ") {";
-
-                                Tabs.Inc();
-                                fbody()  << Tabs << "do {";
-
-                                if ( pElement->Get("skipWS").Exists() ) {
-                                        Tabs.Inc();
-                                   fbody() << Tabs << "SkipWS();";
-                                   Tabs.Dec();
-                                }
-
-                                fbody()  << Tabs << "} while ("; 
-                                makeFunctionCallFromAlternateAccElement(pElement, FALSE);
-                                fbody()	<< ");";
-                                Tabs.Dec();
-
-                                fbody()  << Tabs << "}" 
-                                         << Tabs << "else";
-
-                                bDoTabIncrement = TRUE;
-                        }
-                        else
-                        if ( WCString("*") == repPostfix ) {
-                                if ( 1 < numItems ) {
-                                        WCString errString;
-                                        errString << "Can not use \'*\' postfix in alternative statement";
-                                        ParseError(errString,ERROR);
-                                }
-                                else {
-                                        fbody() << Tabs << "while(";
-                                        makeFunctionCallFromAlternateAccElement(pElement, FALSE);
-                                        fbody() << ") {";
-
-                                        if ( pElement->Get("skipWS").Exists() )
-                                           fbody() << "SkipWS();";
-
-                                        fbody() << "}";
-
-                                        bIsConditional = TRUE;
-                                }
-                        }
-                        else
-                        if ( WCString("?") == repPostfix ) {
-                                if ( 1 < numItems ) {
-                                        WCString errString;
-                                        errString << "Can not use \'?\' postfix in alternative statement";
-                                        ParseError(errString,ERROR);
-                                }
-                                else {
-                                         fbody() << Tabs << "if (";
-                                        makeFunctionCallFromAlternateAccElement(pElement, FALSE);
-                                        fbody()	<< ") {}";
-
-                                        bIsConditional = TRUE;
-                                }
-                        }
-                        else {
-                          static int count = 0;
-                          if ( 0 == count++ ) {
-                                WCString errString;
-                                errString << "Unknown postfix \'" << repPostfix << "\'encountered";
-                                  ParseError(errString,ERROR);
-                          }
-                          return FALSE;
-                        }
-                }
-                else {
-                        fbody() << Tabs   << "if (";
-
-                        //
-                        //Check for exceptions
-                        //
-                        // Note that the exceptions are put in front of the regular calls;
-                        // this is by design
-                        //
-                        if ( pElement->Get("exception").HasAttributes() ) {
-                                CAttributeNode Exception;
-
-                                pElement->Get("exception").GetAttributes()->Top(Exception);
-                                if ( Exception.Exists() ) {
-                                        static int count = 0;
-
-                                        makeFunctionCallFromAlternateAccElement(&Exception, TRUE);
-                                        fbody() << " || "; 
-
-                                        //Exception found, add to list.
-                                        WCString name;
-                                        name << Exception.GetName() << " val: " << Exception.GetValue();
-                                        $!language![gParserLanguage]!exceptions$.Push(name);
-                                }
-
-                                //Check if exception has exception (error - must enclose in braces for this case)
-                                if ( Exception.Get("exception").Exists() )
-                                   ParseError("Can not catenate except clauses - use ()-braces.",ERROR);
-                        }
-
-                        fbody() << "!"; 
-                        makeFunctionCallFromAlternateAccElement(pElement, FALSE);
-                        fbody() << ")";
-                        bDoTabIncrement = TRUE;
-                }
-
-                if ( bDoTabIncrement ) {
-                        if ( 0 < numItems )
-                           fbody() << " {";
-
-                        Tabs.Inc();
-                        ++tabCount;
-                }
-         $end foreach$
-
-        if ( bDoTabIncrement ) {
-                fbody() << Tabs << actionString;
-
-                while ( 0 < tabCount ) {
-                        Tabs.Dec();
-                        --tabCount;
-
-                        if ( 0 < numItems )
-                                fbody() << Tabs << "}";
-                }
-        }
-
-        return bIsConditional;
-}
-
-
-function void makeFunctionCallFromAlternateAccElement(CAttributeNode *pRoot, BOOL doAlternative)
-{
-        if (!pRoot) {
-                ParseError("null pointer passed to makeFunctionCallFromAlternateAccElement().",ERROR);
-                return;
-        }
-
-        if ( WCString("funccall") != pRoot->GetName() ) {
-                ParseError("Expected function call node in makeFunctionCallFromAlternateAccElement().",ERROR);
-                return;
-        }
-
-        //
-        // The function call gets stored as a separate item in the attribute list of the calling function body.
-        //
-
-        #Following derived from the output of a $foreach$ loop
-        #
-        # Following loop copies the alternative values in the value parts of the parameter nodes
-        # to the name parts of the nodes. In this way, we don' need to defer the decision to use the
-        # alternative values.
-        #
-        CAttributeTree *pRoot3= pRoot->Get("parameters").GetAttributes();
-        if (pRoot3) {
-           for( CAttributeTree::iterator pElement2 = pRoot3->start(); pElement2 != pRoot3->end(); ++pElement2) {
-
-                        if ( doAlternative && ( pElement2->GetValue().Length() > 0 ) ) {
-                                pElement2->SetName(pElement2->GetValue());
-                        }
-                        pElement2->SetValue("");
-                }
-        }
-
-
-        #Add main node to the end of the fbody list.
-        CAttributeTree *pAttributes = $.BlockStack.Block.fbody$.GetAttributes(); 
-        pAttributes->AddTail(*pRoot);
-
-        fbodyNewItem();
-}
-
-
-function void SetFirstInFunction(int val )
-{
-   WCString strval;
-   strval.AddInt(val);
-   
-   $.BlockStack.Block!FirstInFunction$.SetValue(strval);
-}
-
-
-function BOOL IsFirstInFunction()
-{
-   WCString strval;
-   
-   strval = $.BlockStack.Block.FirstInFunction$.GetValue();
-   return strval.GetInt() != 0;
-}
-
-
-function void SetInLoop()
-{
-  WCString strval;
-
-  if ( !$.BlockStack.Block.FirstInLoop$.Exists() ) {
-     strval.AddInt(1);
-    $.BlockStack.Block!FirstInLoop$.SetValue(strval);
-  }
-  else {
-    strval = $.BlockStack.Block.FirstInLoop$.GetValue();
-    int temp = strval.GetInt();
-    #strval = "";
-        strval.empty();
-    strval.AddInt( temp +1 );
-    $.BlockStack.Block!FirstInLoop$.SetValue(strval);
-
-  }
-
-}
-
-
-function BOOL IsFirstInLoop()
-{
-  WCString strval;
-  BOOL returnval;
-
-  if ( !$.BlockStack.Block.FirstInLoop$.Exists() )
-     return FALSE;
-
-   strval = $.BlockStack.Block.FirstInLoop$.GetValue();
-   int temp = strval.GetInt();
-   returnval = (temp !=0);
-   
-   if ( temp > 0 ) temp--; else temp=0;
-   strval.empty();
-   strval.AddInt( temp );
-   $.BlockStack.Block!FirstInLoop$.SetValue(strval);
-
-   return returnval;
-}
-
-
-function void SetLoopType(WCString val)
-{
-   $.BlockStack.Block!LastStatType$.SetValue(val);
-}
-
-function BOOL LastWasLoop()
-{
-   if ( $.BlockStack.Block.LastStatType$.Exists() &&
-        $.BlockStack.Block.LastStatType$.GetValue() == WCString("LOOP") )
-      return TRUE;
-   else
-      return FALSE;
-}
-
-
-function WCString &fconst() 
-{ 
-   if ( !$.BlockStack.Block$.Exists() ) 
-      ParseError("Fatal Error: No blocks defined!",FATAL);
-
-   return $.BlockStack.Block!fconst$.GetValue() ; 
-}
-
-
-function void fbodyNewItem() 
-{
-        $.BlockStack.Block.fbody$.AddTail("", "");
-}
-
-function WCString &fbody() 
-{ 
-   if ( !$.BlockStack.Block$.Exists() ) 
-      ParseError("Fatal Error: No blocks defined!",FATAL);
-
-        if ( ! $.BlockStack.Block.fbody$.HasAttributes() ) {
-                fbodyNewItem();
-        }
-
-        #Get very last item in the fbody list.
-        CAttributeTree *pAttributes = $.BlockStack.Block.fbody$.GetAttributes(); 
-        pAttributes->MoveLast();
-
-        return pAttributes->GetCurrent()->GetValue();
-}
-
-
-
-////////////////////////////////////////////////////////////////////////////
-// W17-12-95
-//
-// Start the creation of a new routine - parameter is used in routine name
-//
-// If no parameter given, Parse_Block#() is assumed, where # is a counter
-//
-function void Block_Up(char *aLabel)
-{
-   //Create new block on the stack
-   $!BlockStack$.Push("Block");
-   $.BlockStack.Block!fbody$;
-   $.BlockStack.Block!FirstInFunction$.SetValue("-1");   //W9-4-97 IDIOT! Default == TRUE
-  
-   //Create function header
-   if ( aLabel) {
-      $.BlockStack.Block!Label$.SetValue(aLabel); //Label only given value if normal label, not internal block
-   }
-   else {
-      ++m_BlockCount;
-
-      //W9-4-97 Also save interim blocks in the attribute tree.
-      WCString block("Block");
-      block.AddInt(m_BlockCount);
-      $.BlockStack.Block!count$.SetValue(block);
-   }
-}
-
-
-////////////////////////////////////////////////////////////////////////////
-// W17-12-95
-//
-// Send current block to output and flush its contents. Process previous block. 
-//
-// if m_BlockCount == -1, there are no blocks defined (empty block list)
-//
-function void Block_Down(void)
-{
-   if ( !$.BlockStack.Block$.Exists() ) 
-      ParseError("Fatal Error: No blocks defined!",FATAL);
-   
-   //Flush all to output if Pass2
-   WCString thisLabel = $.BlockStack.Block.Label$.GetValue(); //Label only given value if normal label, not internal block
-
-
-   if ( thisLabel.Length() > 0 ) {
-      //Labelname given; it's not an internal label
-      if ( fconst().Length() )
-         $.language.[gParserLanguage].Labels![thisLabel]!fconst$.SetValue( fconst() );
-
-#      $.language.[gParserLanguage].Labels![thisLabel]!fbody$.SetValue( $.BlockStack.Block.fbody$.toString() );
-      $.language.[gParserLanguage].Labels![thisLabel]!fbody$ = $.BlockStack.Block.fbody$;
-   }
-   else {
-      //It must be an internal label
-      if ( $.BlockStack.Block.count$.Exists() ) {
-         thisLabel = $.BlockStack.Block.count$.GetValue();
-
-         if ( fconst().Length() )
-            $.language.[gParserLanguage]!InternalLabels![thisLabel]!fconst$.SetValue( fconst() );
-
-#         $.language.[gParserLanguage]!InternalLabels![thisLabel]!fbody$.SetValue( $.BlockStack.Block.fbody$.toString() );
-         $.language.[gParserLanguage]!InternalLabels![thisLabel]!fbody$ = $.BlockStack.Block.fbody$;
-      }
-      else
-         ParseError("Undefined stuff on Block-stack",ERROR);
-   }
-
-   //Pop current block
-   WCString dummy;
-   $.BlockStack$.Pop(dummy);
-}
-
-
-function BOOL doSkipWS() 
-{
-        return gSkipWS;
-}
-
-
-////////////////////////////////////////////////////////////////////////////
-// 7-4-97 The Final Check.
-//
-// Check if all the elements we have parsed and collected are suitable for
-// output. In particular, the encountered labels are checked for 
-// consistency.
-//
-// This function is called after the entire file has been parsed and before
-// creation of output begins.
-//
-// If any errors are encountered, this function will generate a fatal error.
-//
-function BOOL DoFinalCheck()
-{
-   bool bFoundMissingLabels         = false;
-   bool bFoundMissingFields         = false;
-   bool bFoundMissingDefinition     = false;
-   bool bFoundMissingImplementation = false;
-
-   //Check if all encountered labels are defined
-   $foreach pLang in .language$
-   $body$
-       gParserLanguage = pLang->GetName();
-       WCString tempvalue;
-
-      //
-          // Check if definition and implementation parts of language have been defined.
-          //
-          if ( !$.language.[gParserLanguage].donedefinition$.Exists() ) {
-                 WCString errstr("Definition part for language  ");
-                 errstr << gParserLanguage << " has not been defined.";
-                 ParseError(errstr,ERROR);
-                 bFoundMissingDefinition = true;
-          }
-
-          if ( !$.language.[gParserLanguage].doneimplementation$.Exists() ) {
-                 WCString errstr("Implementation part for language  ");
-                 errstr << gParserLanguage << " has not been defined.";
-                 ParseError(errstr,ERROR);
-                 bFoundMissingImplementation = true;
-          }
-
-      //
-      //Check rightlabels
-      //
-      $foreach pRightLabel in .language.[gParserLanguage].RightLabels$
-      $body$
-         tempvalue = pRightLabel->GetName();
-         if ( !$.language.[gParserLanguage].Labels.[tempvalue]$.Exists() ) {
-            WCString errstr("RightLabel \'");
-            errstr << tempvalue << "\' has not been defined.";
-            ParseError(errstr,ERROR);
-            bFoundMissingLabels = true;
-         }
-      $end foreach$
-
-      //
-      //Check Action Labels
-      //
-      $foreach pActionLabel in .language.[gParserLanguage].ActionLabels$
-      $body$
-         tempvalue = pActionLabel->GetName();
-         if ( !$.language.[gParserLanguage].Labels.[tempvalue]$.Exists() ) {
-            WCString errstr("ActionLabel \'");
-            errstr << tempvalue << "\' has not been defined.";
-            ParseError(errstr,ERROR);
-            bFoundMissingLabels = true;
-         }
-      $end foreach$
-
-      //
-      // Check if all labels have an fbody field.
-      //
-      $foreach pLabel in .language.[gParserLanguage].Labels$
-      $body$
-         if ( ! pLabel->Get("fbody").Exists() ) {
-            WCString errstr("Field fbody does not exist for label ");
-                        errstr += pLabel->GetName();
-            ParseError(errstr,ERROR);
-            bFoundMissingFields = true;
-         }
-      $end foreach$
-
-   $end foreach$
-
-    if (bFoundMissingLabels)
-       return ParseError("Encountered undefined RightLabels and ActionLabels; bailing out.",FATAL);
-
-    if (bFoundMissingFields)
-       return ParseError("Encountered missing fconst and fbody fields; bailing out.",FATAL);
-
-    if (bFoundMissingDefinition)
-       return ParseError("Encountered missing definition part; bailing out.",FATAL);
-
-    if (bFoundMissingImplementation)
-       return ParseError("Encountered missing implementation part; bailing out.",FATAL);
-
-    return TRUE;
-}
-
-
-
-
-function void DoFinalProcessing() 
-{
-   #Check for presence of create function
-   $foreach pFunction in .language.[gParserLanguage].functions$
-   $body$
-      if ( pFunction->GetName() == "create()" ) {
-                 #Move to outside functions list
-                 $.language.[gParserLanguage]!specials!create$.SetValue(pFunction->GetValue());
-
-                 $.language.[gParserLanguage].functions$.GetAttributes()->ClearCurrent();
-
-                 ParseError( "Detected create() routine.", NOTE);
-                 break;
-                
-          }
-   $end foreach$
-
-
-   #Check for presence of destroy function
-   $foreach pFunction in .language.[gParserLanguage].functions$
-   $body$
-      if ( pFunction->GetName() == "destroy()" ) {
-                 #Move to outside functions list
-                 $.language.[gParserLanguage]!specials!destroy$.SetValue(pFunction->GetValue());
-
-                 $.language.[gParserLanguage].functions$.GetAttributes()->ClearCurrent();
-
-                 ParseError( "Detected destroy() routine.", NOTE);
-                 break; 
-                
-          }
-   $end foreach$
-}
-
-function void create() {
-        //Empty for the time being
-}
-
-
-
-//
-// End Language Definition.
-//
+#
+# End Language Definition.
+#
 
 }
 
