@@ -314,5 +314,16 @@ public class BasicParser {
 
 		return true;
 	}
+
+
+	/**
+     * Placeholder for the parser entry method.
+     * Should be defined in derived parsers.
+     */
+	public State parse() {
+		State state = new State();
+		state.setError("Method parse() not defined.");
+		return state;
+	}
 }
 

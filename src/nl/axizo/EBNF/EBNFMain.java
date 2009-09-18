@@ -17,29 +17,40 @@ import nl.axizo.parser.*;
  */
 public class EBNFMain {
 
-
 	public static void main(String[] argv) 
 		throws NoSuchMethodException, IllegalAccessException {
+
 		String nodesFile = "nodes.txt";
 		boolean parseOnly = false;
-		String nodeFile = "nodes.txt";
 		String inFile;
+		boolean outputRuby = false;
 
 		// Handle parameters, if any:
 		//
 		//	-p file	- parse only, quit after doing parse stage
 		//			- parse tree is outputted to given file
 		//	file	- input (ebnf) file to parse
-		if ( "-p".equals(argv[0]) ) {
-			parseOnly = true;
-			nodesFile = argv[1];
-			inFile   = argv[2];
-		} else {
-			inFile   = argv[0];
+		int curarg = 0;
+		while ( curarg < argv.length -1 ) {
+			if ( "-p".equals(argv[curarg]) ) {
+				parseOnly = true;
+				nodesFile = argv[curarg + 1];
+				curarg += 2;
+			} else if ( "-r".equals(argv[curarg]) ) {
+				Util.info( "Outputting for ruby.");
+				outputRuby = true;
+				curarg += 1;
+			} else {
+				Util.error ("Unknown option '" + argv[curarg] + "'" );
+				curarg += 1;
+			}
 		}
 
-		EBNF parser = new EBNF( inFile );
-//		parser.setTraceLevel( Util.TRACE );
+		inFile   = argv[curarg];
+
+		//NOTE: This is the ruby parser!!!!!
+		BasicParser parser = new EBNFruby( inFile );
+		//parser.setTraceLevel( Util.TRACE );
 		parser.setFirstTwoLines(true);
 		State state = parser.parse();
 
@@ -50,21 +61,32 @@ public class EBNFMain {
 			return;
 		}
 
-		// Quit if parse errors occured
+		// Skip rest of steps if  error occured during parsing stage
 		if ( state.hasErrors() ) {
 			Util.info( "Errors occured during parsing; skipping translation and generation.");
 		} else {
-			try {	
+			try {
+				Validator  validator;
+				Translator translator;
+				Generator  generator;
+
+				if ( outputRuby ) {
+					validator  = new EBNFValidatorRuby();
+					translator = new EBNFTranslatorRuby();
+					generator  = new EBNFGeneratorRuby();
+				} else {
+					validator  = new EBNFValidator();
+					translator = new EBNFTranslator();
+					generator  = new EBNFGenerator();
+				}	
+
 				// Validate parse tree
-				EBNFValidator validator = new EBNFValidator();
 				validator.validate( state );
-		
+
 				// Do node translations
-				EBNFTranslator translator = new EBNFTranslator();
 				translator.translate( state );
 	
 				// Create output
-				EBNFGenerator generator = new EBNFGenerator();
 				generator.generate( state );
 	
 			} catch( ParseException e ) {
@@ -74,8 +96,7 @@ public class EBNFMain {
 				parser.saveNodes( state, nodesFile );
 				System.exit(1);
 			}
-		}		
-
+		}
 
 		parser.saveNodes( state, nodesFile );
 		parser.showFinalResult(state);
@@ -83,5 +104,4 @@ public class EBNFMain {
 			System.exit(1);
 		}
 	}
-
 }

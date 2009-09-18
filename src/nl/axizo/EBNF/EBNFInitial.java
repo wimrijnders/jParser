@@ -854,20 +854,30 @@ public class EBNFInitial extends BasicParser {
 		String nodesFile = "nodes.txt";
 		boolean parseOnly = false;
 		String inFile;
-		boolean outputRuby = true;
+		boolean outputRuby = false;
 
 		// Handle parameters, if any:
 		//
 		//	-p file	- parse only, quit after doing parse stage
 		//			- parse tree is outputted to given file
 		//	file	- input (ebnf) file to parse
-		if ( "-p".equals(argv[0]) ) {
-			parseOnly = true;
-			nodesFile = argv[1];
-			inFile   = argv[2];
-		} else {
-			inFile   = argv[0];
+		int curarg = 0;
+		while ( curarg < argv.length -1 ) {
+			if ( "-p".equals(argv[curarg]) ) {
+				parseOnly = true;
+				nodesFile = argv[curarg + 1];
+				curarg += 2;
+			} else if ( "-r".equals(argv[curarg]) ) {
+				info( "Outputting for ruby.");
+				outputRuby = true;
+				curarg += 1;
+			} else {
+				error ("Unknown option '" + argv[curarg] + "'" );
+				curarg += 1;
+			}
 		}
+
+		inFile   = argv[curarg];
 
 		EBNFInitial parser = new EBNFInitial( inFile );
 		// parser.setTraceLevel( Util.TRACE );

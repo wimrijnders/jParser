@@ -299,6 +299,20 @@ public class EBNFTranslator extends Translator {
 	}
 
 
+	protected String makeCall(Node child) {
+		String call = null;
+		if ( "literal".equals( child.getKey() ) 
+			|| "literal_symbol".equals( child.getKey() ) ) {
+			call = "parseString( \"" + child.getValue() + "\", state"; 
+		} else if ( "charset".equals( child.getKey() ) ) {
+			call = "parseCharset( " + child.getValue() + ", state"; 
+		} else if ( "label".equals( child.getKey() ) ) {
+			call = "s( \"" + child.getValue() + "\", state"; 
+		}
+
+		return call;
+	}
+
 	private void translateSingleStatement( State state ) throws ParseException {
 		Vector res =  state.getCurNode().findNodes( "statement" );
 
@@ -328,17 +342,10 @@ public class EBNFTranslator extends Translator {
 			// TODO: assert that statement and postfix have correct order at this point
 			Node child = n.get(0);
 
-			String call;
 			String param1 = null;
 			String param2 = null;
-			if ( "literal".equals( child.getKey() ) 
-				|| "literal_symbol".equals( child.getKey() ) ) {
-				call = "parseString( \"" + child.getValue() + "\", state"; 
-			} else if ( "charset".equals( child.getKey() ) ) {
-				call = "parseCharset( " + child.getValue() + ", state"; 
-			} else if ( "label".equals( child.getKey() ) ) {
-				call = "s( \"" + child.getValue() + "\", state"; 
-			} else continue;
+			String call = makeCall(child);
+			if ( call == null) continue;
 
 			// TODO: add whitespace handling for following blocks
 			if ( !"".equals(repeat) ) {

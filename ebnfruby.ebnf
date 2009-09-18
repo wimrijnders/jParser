@@ -1,5 +1,5 @@
 #######################################################################
-# $Id$ 
+# $Id: ebnf.ebnf 42 2008-11-03 15:41:51Z wri $ 
 #
 # For reserved words and characters till now, view the language definition.
 #
@@ -12,7 +12,7 @@
 
 #TEST: using language file ebnfdef.ebnf.
 
-language EBNF {
+language EBNFruby {
 
 noWS
 
@@ -42,6 +42,13 @@ token range       = csallchars | ( anychar  ( "-"  anychar )?  ).
 
 except_charset= '~' range+.
 charset       = noWS '[' {  range+ | except_charset }  ']'.
+
+# Regexp - are copied straight to ruby, so the
+#          ruby syntax should be valid.
+re_char       = [\all~/] | "\\/". 
+re_range      = re_char+.
+token regexp  = noWS "/" re_range   "/".
+# End Regexp
                             
 
 litchar       = [\all~'"\r\n\\] 
@@ -65,8 +72,8 @@ token label   = [_a-zA-Z] [_a-zA-Z0-9]*.
 
 skipWS
 
-//Basic WEBNF stuff
-skip basicstatement = charset | literal| literal_symbol | label.
+//Basic EBNF stuff
+skip basicstatement = charset | regexp | literal| literal_symbol | label.
 group          = statements.
 repeat         = statements.
 
@@ -91,7 +98,7 @@ rule           = rule_modifier? label Err- '=' Err+ statements '.' .
 #
 
 skip languageblock  = 'language' label '{' 
-		{ switches | State | action | rule  | native_code } 
+		{ switches | rule } 
 	'}'. 
 
 usingfile      = noWS [a-zA-Z0-9_]+ ( [.] { [a-zA-Z0-9_] } )?.
@@ -100,52 +107,6 @@ includefile    = "using"  "include" "file" usingfile ".".
 
 #Entry point
 entry language = {languagefile|includefile}  languageblock {languagefile}.
-
-#
-#Action blocks:
-#
-#
-noWS
-#Note explicit removal of '0' in override chars - to catch any hex or oct
-blocklitchar   = [\all~"\r\n\\] | ( "\\" [\all~0] ).      
-blockstring    =  "\"" { blocklitchar } "\"".
-
-#Order important in following
-ignore block_comment = o_comment.
-blockchar      = c_comment | block_comment | blockstring | [\all~{}$].  
-token code_block     = { ( "{" code_block "}" ) | blockchar }.
-skipWS
-
-ignore pre_indicator = "pre:". 
-ignore post_indicator = "post:". 
-#token 
-pre_block  = pre_indicator  '{' noWS code_block '}'.
-#token 
-post_block = '{' noWS code_block '}'.
-
-action    = 'action' label  (pre_block ( post_indicator post_block )? ) | post_block.
-
-
-#
-# Native code block
-#
-token native_code = 'code' '{' noWS code_block '}'.
-
-
-#
-# State 
-#
-
-# Definitions state extended, to allow for proper definition of constructor
-token number   = Err- noWS ( '+' | '-' )? dec+.
-token type_state = "int" | "charset" | "bool".
-token member_state = label.
-oldbool         = "TRUE" | "FALSE".
-token param_init = number | oldbool | "true" | "false".
-token ctor_init      = '(' param_init ')'.
-statevar       = type_state member_state ( ('=' param_init ) | ctor_init  )?.
-stateblock     = { statevar ';' }.
-skip State     = 'state'  '{' stateblock '}' . 
 
 #
 # End Language Definition.

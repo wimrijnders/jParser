@@ -53,7 +53,8 @@
 				failonerror="true"
 		>
 			<!-- up-dir needed because we start in a subdir -->
-			<arg value="../../ebnf.ebnf"/>
+			<!-- arg value="../../ebnf.ebnf"/ -->
+			<arg value="../../ebnfruby.ebnf"/>
 			<classpath>
 				<pathelement location="${dist}/lib/parser.jar"/>
 			</classpath>
@@ -74,10 +75,11 @@
 				fork="true"
 				failonerror="true"
 		>
-			<!-- up-dir needed because we start in a subdir -->
 			<arg value="-p"/>
 			<arg value="nodes_parseonly.txt"/>
-			<arg value="../../ebnf.ebnf"/>
+			<!-- up-dir needed because we start in a subdir -->
+			<!-- arg value="../../ebnf.ebnf"/ -->
+			<arg value="../../ebnfruby.ebnf"/>
 			<classpath>
 				<pathelement location="${dist}/lib/parser.jar"/>
 			</classpath>
@@ -124,6 +126,42 @@
 			<arg value="-p"/>
 			<arg value="nodes_test.txt"/>
 			<arg value="../ebnf.ebnf"/>
+			<classpath>
+				<pathelement location="${dist}/lib/parser.jar"/>
+				<pathelement location="${build}/generated"/>
+			</classpath>
+		</java>
+	  </timer>
+	</target>
+
+	<!-- ************************
+	     * Ruby Generation      *
+	     ************************ -->
+
+	<target name="compiler" depends="run" >
+		<echo>Compiling test</echo>
+		<!-- Compile the generated parser -->	
+		<copy file="${src}/nl/axizo/EBNF/EBNFMain.java" 
+			tofile="${out}/generated/nl/axizo/EBNF/EBNFMain.java" 
+		/>
+		<javac srcdir="${out}/generated" destdir="${build}/generated" includes="EBNFruby.java,nl/**">
+			<classpath>
+				<pathelement location="${dist}/lib/parser.jar"/>
+			</classpath>
+		</javac>
+	</target>
+
+	<target name="runr" depends="compiler" >
+	  <timer name="run">
+		<java 
+				classname="nl.axizo.EBNF.EBNFMain" 
+				dir="${out}"
+				fork="true"
+				failonerror="true"
+		>
+			<arg value="-r"/>
+			<!-- up-dir needed because we start in a subdir -->
+			<arg value="../ebnfruby2.ebnf"/>
 			<classpath>
 				<pathelement location="${dist}/lib/parser.jar"/>
 				<pathelement location="${build}/generated"/>
