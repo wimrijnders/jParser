@@ -23,7 +23,7 @@ import java.util.regex.*;
  *		- unneeded data is removed.
  * 		- the generation step is simplified.
  */
-public class EBNFTranslator {
+public class EBNFTranslator extends Translator {
 
 	protected static String replace(
 	    String aInput, String aOldPattern, String aNewPattern
@@ -98,7 +98,7 @@ public class EBNFTranslator {
 	/**
  	 * Perform translation steps on charset nodes.
 	 */
-	private void translateCharsets( State state ) {
+	protected void translateCharsets( State state ) {
 
 		// Translate special characters in charset ranges to the java regexp equivalents
 		Vector res =  state.getCurNode().findNodes( "range" );
@@ -293,6 +293,12 @@ public class EBNFTranslator {
 		}
 	}
 
+
+	protected String getWhileConstruct() {
+		return "do; while (";
+	}
+
+
 	private void translateSingleStatement( State state ) throws ParseException {
 		Vector res =  state.getCurNode().findNodes( "statement" );
 
@@ -347,11 +353,11 @@ public class EBNFTranslator {
 					param1 = "false";
 				} else if ( "*".equals( repeat ) ) {
 					// Terminating brace gets added during generation
-					call = "do; while (" + call;
+					call = getWhileConstruct() + call;
 				} else if ( "+".equals( repeat ) ) {
 					// Do first call separately with throw
 					// Terminating brace gets added during generation
-					call = call + ", true); do; while( " + call;
+					call = call + ", true); " + getWhileConstruct() + call;
 				}
 			}
 

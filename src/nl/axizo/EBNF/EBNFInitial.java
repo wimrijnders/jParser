@@ -48,7 +48,7 @@ public class EBNFInitial extends BasicParser {
 		number_ch       = Pattern.compile( "[0-9]+");
 		literal_ch      = Pattern.compile( "[ a-zA-Z_0-9#/~\\-\\]\\[\\]\\(\\)|{}=.!$:&*,+;]");
 		lit_override_ch = Pattern.compile( "[\\\\\'\"]");
-		charset_ch      = Pattern.compile( "[_a-zA-Z +0-9'\"+*?.{}$]");
+		charset_ch      = Pattern.compile( "[_a-zA-Z +0-9'\"+*?.{}$/]");
 		override_ch     = Pattern.compile( "[\\]\\-\\\\)~trn]");
 		plusminus_ch    = Pattern.compile( "[+\\-]");
 		postfix_ch      = Pattern.compile( "[?+*]");
@@ -252,6 +252,8 @@ public class EBNFInitial extends BasicParser {
 	}
 
 	public boolean rule(State state ) throws ParseException {
+		trace( "Entered rule");
+
 		s( "rule_modifier", state );
 		WS(state);
 
@@ -322,6 +324,7 @@ public class EBNFInitial extends BasicParser {
 	}
 
 	public boolean range(State state ) throws ParseException {
+		trace( "Entered range.");
 
 		if (
 			parseCharset( charset_ch, state ) ||
@@ -340,6 +343,7 @@ public class EBNFInitial extends BasicParser {
 	}
 
 	public boolean except_charset(State state ) throws ParseException {
+		trace( "Entered except_charset.");
 
 		parseString( "~", state, true, true );
 		do; while (
@@ -849,8 +853,8 @@ public class EBNFInitial extends BasicParser {
 
 		String nodesFile = "nodes.txt";
 		boolean parseOnly = false;
-		String nodeFile = "nodes.txt";
 		String inFile;
+		boolean outputRuby = true;
 
 		// Handle parameters, if any:
 		//
@@ -866,7 +870,7 @@ public class EBNFInitial extends BasicParser {
 		}
 
 		EBNFInitial parser = new EBNFInitial( inFile );
-		//parser.setTraceLevel( Util.TRACE );
+		// parser.setTraceLevel( Util.TRACE );
 		parser.setFirstTwoLines(true);
 		State state = parser.parse();
 
@@ -881,17 +885,28 @@ public class EBNFInitial extends BasicParser {
 		if ( state.hasErrors() ) {
 			info( "Errors occured during parsing; skipping translation and generation.");
 		} else {
-			try {	
+			try {
+				Validator  validator;
+				Translator translator;
+				Generator  generator;
+
+				if ( outputRuby ) {
+					validator  = new EBNFValidatorRuby();
+					translator = new EBNFTranslatorRuby();
+					generator  = new EBNFGeneratorRuby();
+				} else {
+					validator  = new EBNFValidator();
+					translator = new EBNFTranslator();
+					generator  = new EBNFGenerator();
+				}	
+
 				// Validate parse tree
-				EBNFValidator validator = new EBNFValidator();
 				validator.validate( state );
 
 				// Do node translations
-				EBNFTranslator translator = new EBNFTranslator();
 				translator.translate( state );
 	
 				// Create output
-				EBNFGenerator generator = new EBNFGenerator();
 				generator.generate( state );
 	
 			} catch( ParseException e ) {

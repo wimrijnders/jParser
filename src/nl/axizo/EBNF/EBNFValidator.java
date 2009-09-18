@@ -21,12 +21,12 @@ import java.util.Hashtable;
  * The goal is to check if the input tree conforms to rules which
  * are not enforced by the syntax
  */
-public class EBNFValidator {
+public class EBNFValidator extends Validator {
 
 	private Vector errors = new Vector();
 
 
-	private void addError(String msg) {
+	protected void addError(String msg) {
 		errors.add( msg );
 	}
 

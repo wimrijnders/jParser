@@ -1,5 +1,5 @@
 /**
- * $Id$
+ * $Id: EBNFGenerator.java 42 2008-11-03 15:41:51Z wri $
  *
  */
 package nl.axizo.EBNF;
@@ -14,19 +14,25 @@ import java.util.Hashtable;
  *  Generates output from a parse tree.
  *
  * The parse tree must have been created with an EBNF parser.
+ *
+ * Adaptation of the java EBNFGenerator, so that it outputs
+ * ruby code
  */
-public class EBNFGenerator extends Generator {
+public class EBNFGeneratorRuby extends EBNFGenerator {
 
 	/**
  	 * Generate output from the current node tree.
  	 */
 	public void generate( State state ) throws ParseException {
+		Util.info("Running EBNFGeneratorRuby.generate()");
+
 		String output = "";
 
 		Node root = state.getCurNode();
 
-		String className       = root.get("language").get("label").getValue();
-		final String outfile   = className + ".java";
+		
+		String className       = root.get("language").get("label").getValue() + "Ruby";
+		final String outfile   = className + ".rb";
 		Node   member_patterns = root.get("temp").get("members");
 		Node   init_patterns   = root.get("temp").get("ctor");
 
@@ -39,40 +45,35 @@ public class EBNFGenerator extends Generator {
 
 		// Create the file header.	
 		output += 
-				  "/* THIS FILE IS GENERATED!\n"
-				+ " *\n"
-				+ " * Editing it is a bad idea.\n"
-				+ " */\n"
-				+ "package nl.axizo.EBNF;\n"
-				+ "\n"
-				+ "import nl.axizo.parser.*;\n"
-				+ "import java.util.regex.*;\n"
+				  "# THIS FILE IS GENERATED!\n"
+				+ "#\n"
+				+ "# Editing it is a bad idea.\n"
+				+ "#\n"
+				+ "require 'parser'\n"
 				+ "\n"
 				+ "\n"
-				+ "public class " + className + " extends BasicParser {\n\n";
-
-		output += generateState(root);
+				+ "class " + className + " < BasicParser \n\n";
 
 		int num = member_patterns.numChildren();
 		for( int i = 0;  i < num; ++i ) {
 			output += member_patterns.get(i).getValue();
 		}
+		output += "\n\n";
 
 		//
 		// Generate the constructors
 		// 
-		output += "\n\n\t" + "public " + className + "(String buffer, boolean loadFromFile) {\n"
-				+ "\t\tsuper(buffer, loadFromFile);\n\n";
-
-		num = init_patterns.numChildren();
-		for( int i = 0;  i < num; ++i ) {
-			output += init_patterns.get(i).getValue();
-		}
-
-		output += "\t}\n\n";
-		output += "\n\n\t" + "public " + className + "(String filename) {\n"
-				+ "\t\tthis(filename, true);\n\n";
-		output += "\t}\n\n";
+		//
+		// WRI: Prob not needed in Ruby!
+		//output += "\t" + "def initialize buffer, loadFromFile = true\n"
+		//		+ "\t\tsuper buffer, loadFromFile\n\n";
+		//
+		//num = init_patterns.numChildren();
+		//for( int i = 0;  i < num; ++i ) {
+		//	output += init_patterns.get(i).getValue();
+		//}
+		//
+		//output += "\tend\n\n";
 
 		//
 		// If WS_intern not present, add default implementation
@@ -86,9 +87,9 @@ public class EBNFGenerator extends Generator {
 		if ( ws_intern.size() == 0 ) {
 			Util.info("No internal WS present. Creating default implementation.");
 
-			output += "\tpublic boolean WS_intern(State state ) throws ParseException {\n"
-					+ "\t\treturn super.WS_intern(state);\n"
-					+ "\t}\n\n";
+			output += "\tdef WS_intern state\n"
+					+ "\t\tsuper.WS_intern state\n"
+					+ "\tend\n\n";
 		}
 
 
@@ -107,14 +108,14 @@ public class EBNFGenerator extends Generator {
 		// 
 		Node native_code = root.get("language").get("native_code");
 		if ( !native_code.isNull() ) {
-			output += "\n\t// Start native code\n"
+			output += "\n\t# Start native code\n"
 					+ native_code.getValue()
-					+ "\n// End native code\n\n";
+					+ "\n# End native code\n\n";
 		}
 		
 		output += generateEntryPoint(root ); 
 
-		output += "}\n";
+		output += "end\n";
 
 		// Save what we got
 		try {
@@ -130,11 +131,11 @@ public class EBNFGenerator extends Generator {
 	protected String generateAlternative( Node n, boolean doWS, boolean isFirst ) {
 		String out = "";
 
-		if ( doWS && !isFirst ) out += "\t\tWS(state);\n";
+		if ( doWS && !isFirst ) out += "\t\tWS state\n";
 
 		if ( n.numChildren() == 1 ) {
 			String value =  n.get("call").getValue();
-			int whileIndex =  value.indexOf( "do; while" );
+			int whileIndex =  value.indexOf( "begin; end while " );
 			boolean isWhileLoop = ( whileIndex != -1 );
 
 			// Special case for loop, need to take the endbrace into
@@ -144,15 +145,15 @@ public class EBNFGenerator extends Generator {
 				// isFirst therefore ignored here.
 				if ( doWS ) {
 					// Dirty: insert WS handling in while loop
-					int len = "do; while".length();
+					int len = "begin; end while ".length();
 					int endIndex = whileIndex + len;
 					value = value.substring(0, whileIndex ) 
-							+ "do WS(state); while" 
+							+ "begin WS state; end while " 
 							+ value.substring(endIndex);
 				}
 
 				// while-loop 
-				out += "\t\t" + value + " ));\n";
+				out += "\t\t" + value + " )\n";
 			} else {
 
 				// normal statement
@@ -178,14 +179,14 @@ public class EBNFGenerator extends Generator {
 				}
 
 				if ( mustReturn ) {
-					out += "\t\tif( !" + value + ", false" + throwParams + " ) ) return false;\n";
+					out += "\t\treturn false unless " + value + ", false" + throwParams + " )\n";
 				} else {
 					out += "\t\t" + value + ", false" + throwParams + " );\n";
 				}
 			}
 		} else {
 			// more than one child
-			out += "\t\tif( !(\n";
+			out += "\t\treturn false unless ";
 
 			for( int i = 0; i < n.numChildren(); ++ i ) {
 				Node c = n.get( i );
@@ -198,9 +199,7 @@ public class EBNFGenerator extends Generator {
 				}
 
 				if ( i != 0 ) {
-					out += "\t\t || ";
-				} else {
-					out += "\t\t    ";
+					out += "or ";
 				}
 
 				out += c.getValue();
@@ -213,12 +212,12 @@ public class EBNFGenerator extends Generator {
 					out += ", true";
 				}
 */
-				out += " )\n";
+				out += " ) ";
 			}
 
 
 			//out += "\t\t);\n";
-			out += "\t\t) ) return false;\n";
+			out += "\n";
 		}
 
 		return out;
@@ -234,7 +233,7 @@ public class EBNFGenerator extends Generator {
 		boolean isWS_intern = "WS_intern".equals( n.get("label").getValue());
 		boolean warnedAboutWS = false;
 
-		out += "\t\t// Generated parsing code\n";
+		out += "\t\t# Generated parsing code\n";
 		for( int i = 0; i < body.numChildren(); ++ i ) {
 			Node c = body.get( i );
 
@@ -264,48 +263,6 @@ public class EBNFGenerator extends Generator {
 		return out;
 	}
 
-
-	/**
- 	 * Determine is passed rule node has a token modifier.
- 	 *
- 	 * @param rule node to check for token modifier.
- 	 * @return true if token modifier present, false otherwise.
- 	 */
-	protected static boolean isTokenRule( Node rule ) {
-		return "token".equals( rule.get("rule_modifier").get("string").getValue() );
-	}
-
-
-	/**
- 	 * Determine if passed rule node has a skip modifier.
- 	 *
- 	 * A rule with a skip modifier gets hidden in the output,
- 	 * while the generated children of the rule are retained.
- 	 *
- 	 * @param rule node to check for skip modifier.
- 	 * @return true if skip modifier present, false otherwise.
- 	 */
-	protected static boolean skipThisRule( Node rule ) {
-		return "skip".equals( rule.get("rule_modifier").get("string").getValue() );
-	}
-
-
-	/**
- 	 * Determine if passed rule node has an ignore modifier.
- 	 *
- 	 * A rule with an ignore modifier is not outputted,
- 	 * including any child nodes.
- 	 * 
- 	 * This modifier can be used for e.g. comments in input.
- 	 *
- 	 * @param rule node to check for ignore modifier.
- 	 * @return true if ignore modifier present, false otherwise.
- 	 */
-	protected static boolean ignoreThisRule( Node rule ) {
-		return "ignore".equals( rule.get("rule_modifier").get("string").getValue() );
-	}
-
-
 	/**
  	 * Generate method code from given Node.
  	 */
@@ -313,14 +270,14 @@ public class EBNFGenerator extends Generator {
 		String name   = rule.get("label").getValue();
 		String output = "";
 
-		output += "\tpublic boolean " + name + "(State state ) throws ParseException {\n" +
-				"\t\ttrace(" + (Util.TRACE -5) + ",\"Called method '" + name + "'.\");\n\n";
+		output += "\tdef " + name + " state\n" +
+				"\t\ttrace \"Called method '" + name + "'.\", " + (Util.TRACE -5) + "\n\n";
 
 		Node pre_node  = null;
 		Node post_node = null;
 		if ( actionMap.containsKey( name ) ) {
 			// Actions present, add a handy reference for the current token.
-			output += "\t\tNode current = state.getCurNode();\n\n";
+			output += "\t\tcurrent = state.curNode\n\n";
 
 			Node action = (Node) actionMap.get( name );
 
@@ -333,75 +290,40 @@ public class EBNFGenerator extends Generator {
 
 		// Ignore rule flag needs to be set before statements are generated
 		if ( ignoreThisRule( rule ) ) {
-			output += "\t\t// Block output of current node and its children\n" +
-				"\t\tstate.setIgnoreCurrent( true );\n\n";
+			output += "\t\t# Block output of current node and its children\n" +
+				"\t\tstate.ignoreCurrent = true\n\n";
 		}
 
 		if ( pre_node != null ) {
-			output += "\t\t// Pre actions\n"
+			output += "\t\t# Pre actions\n"
 					+ pre_node.getValue()
-					+ "\n\t\t// End Pre actions\n\n";
+					+ "\n\t\t# End Pre actions\n\n";
 		}
 
 		output += generateStatements( rule );
 
 		if ( isTokenRule( rule) ) {
-			output += "\n\t\tstate.getCurNode().collect();\n";
+			output += "\n\t\tstate.curNode.collect\n";
 		}
 
 		if ( post_node != null ) {
-			output += "\n\t\t// Post actions\n"
+			output += "\n\t\t# Post actions\n"
 					+ post_node.getValue()
-					+ "\n\t\t// End Post actions\n";
+					+ "\n\t\t# End Post actions\n";
 		}
 
 
 		if ( skipThisRule( rule ) ) {
-			output += "\n\t\t// replace this node with its children\n" +
-						"\t\tstate.setSkipCurrent( true );\n";
+			output += "\n\t\t# replace this node with its children\n" +
+						"\t\tstate.skipCurrent = true\n";
 		}
 
-		output += "\n\t\ttrace(\"Completed method '" + name + "'; value: \" +" + 
-			"state.getCurNode().getValue() + \".\");\n";
+		output += "\n\t\ttrace \"Completed method '" + name + "'; value: #{ state.curNode.value }.\"\n";
 
-		output += "\n\t\treturn true;\n\t}\n\n";
+		output += "\n\t\ttrue\n\tend\n\n";
 
 		return output;
 	}
-
-	private String generateState( Node root ) throws ParseException {
-		String out = "";
-
-		Node stateNode = root.get("language").get("stateblock");
-
-		if ( stateNode.isNull() ) {
-			Util.info("No stateblock found, skipping generation.");
-			return out;
-		} else {
-			Util.info("Stateblock found.");
-		}
-
-		out += "\t// Start State variables\n";
-
-		Vector vars = stateNode.findNodes( "statevar" );
-		for( int i = 0; i < vars.size(); ++ i ) {
-			Node n = (Node) vars.get(i);
-
-			out += "\tprivate " + n.get("type_state").getValue()
-				+  " " + n.get("member_state").getValue();
-
-			if ( !n.get("param_init").isNull() ) {
-				out += " = " +  n.get("param_init").getValue();
-			}
-
-			out += ";\n";
-		}
-
-		out += "\t// End State variables\n\n";
-
-		return out;
-	}
-
 
 	/**
  	 * Detect entry point for the parse and generate code for calling it.
@@ -436,53 +358,27 @@ public class EBNFGenerator extends Generator {
 
 		// Generate the corresponding code.
 		String out =
-		"	public State parse() {\n" +
-//		"		throws NoSuchMethodException, IllegalAccessException {\n" +
+		"	def parse \n" +
 		"\n" +
-		"		State state = new State();\n" +
+		"		state = State.new\n" +
 		"\n" +
-		"		// Parse according to rules\n" +
-		"		try {\n" +
-		"			while ( !eol(state.getCurpos() ) ) {\n" +
-		"				WS(state);\n" +
+		"		# Parse according to rules\n" +
+		"			unless eol(state.curpos )\n" +
+		"				WS state\n" +
 		"\n" +
-		"				if ( !s( \"" + entry_label + "\", state ) ) {\n" +
-		"					state.setError( \"end of parsing\" );\n" +
-		"					break;\n" +
-		"				}\n" +
-		"			}\n" +
-		"		} catch ( ParseException e ) {\n" +
-		"			error( \"Exception: \" + e.toString() );\n" +
-		"		}\n" +
+		"				unless s( \"" + entry_label + "\", state )\n" +
+		"					state.setError \"end of parsing\"\n" +
+		"					break\n" +
+		"				end\n" +
+		"			end\n" +
 		"\n" +
-		"		return state;\n" +
-		"	}\n\n";
+		"	rescue  ParseException  => e\n" +
+		"		error \"Exception: \" + e.to_s\n" +
+		"	ensure\n" +
+		"		return state\n" +
+		"	end\n\n";
 
 		return out;
 	} 
-
-
-	/**
- 	 * Create a Map of all actions.
- 	 *
- 	 * Actions need to be associated with the corresponding rules.
- 	 * Since the rules are iterated over, a map for the actions 
- 	 * is sensible. This cuts down the search time for actions.
- 	 */
-	protected Map getActions(Node root) {
-		Map ret = new Hashtable();
-
-		Vector res =  root.findNodes( "action" );
-		for( int i = 0;  i < res.size(); ++i ) {
-			Node n = (Node) res.get(i);
-
-			// Action name used  as key
-			String ruleName = n.get("label").getValue();
-
-			ret.put( ruleName, n);
-		}
-
-		return ret;
-	}
 }
 
