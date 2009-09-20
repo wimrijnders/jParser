@@ -45,7 +45,9 @@ charset       = noWS '[' {  range+ | except_charset }  ']'.
 
 # Regexp - are copied straight to ruby, so the
 #          ruby syntax should be valid.
-re_char       = [\all~/] | "\\/". 
+
+# Note: order important in following. '\\/' MUST come first.
+re_char       = "\\/" | [\all~/]. 
 re_range      = re_char+.
 token regexp  = noWS "/" re_range   "/".
 # End Regexp

@@ -828,8 +828,8 @@ public class EBNFInitial extends BasicParser {
 	}
 
 
-	protected State parse()
-		throws NoSuchMethodException, IllegalAccessException {
+	public State parse() {
+		//throws NoSuchMethodException, IllegalAccessException {
 
 		State state = new State();
 
@@ -848,8 +848,8 @@ public class EBNFInitial extends BasicParser {
 	}
 
 
-	public static void main(String[] argv) 
-		throws NoSuchMethodException, IllegalAccessException {
+	public static void main(String[] argv) {
+		//throws NoSuchMethodException, IllegalAccessException {
 
 		String nodesFile = "nodes.txt";
 		boolean parseOnly = false;

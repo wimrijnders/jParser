@@ -363,14 +363,14 @@ public class EBNFGeneratorRuby extends EBNFGenerator {
 		"		state = State.new\n" +
 		"\n" +
 		"		# Parse according to rules\n" +
-		"			unless eol(state.curpos )\n" +
-		"				WS state\n" +
+		"		unless eol(state.curpos )\n" +
+		"			WS state\n" +
 		"\n" +
-		"				unless s( \"" + entry_label + "\", state )\n" +
-		"					state.setError \"end of parsing\"\n" +
-		"					break\n" +
-		"				end\n" +
+		"			unless s( \"" + entry_label + "\", state )\n" +
+		"				state.setError \"end of parsing\"\n" +
+		"				break\n" +
 		"			end\n" +
+		"		end\n" +
 		"\n" +
 		"	rescue  ParseException  => e\n" +
 		"		error \"Exception: \" + e.to_s\n" +

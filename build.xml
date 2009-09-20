@@ -139,7 +139,7 @@
 	     ************************ -->
 
 	<target name="compiler" depends="run" >
-		<echo>Compiling test</echo>
+		<echo>Compiling for ruby</echo>
 		<!-- Compile the generated parser -->	
 		<copy file="${src}/nl/axizo/EBNF/EBNFMain.java" 
 			tofile="${out}/generated/nl/axizo/EBNF/EBNFMain.java" 

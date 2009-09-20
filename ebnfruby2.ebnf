@@ -9,45 +9,28 @@
 #    [],{}
 #    '|'   - left to right
 #######################################################################
-
-#TEST: using language file ebnfdef.ebnf.
+# TODO: Enable following constucts again
+#
+# using include file insertmain.txt.
+# using language file ebnfdef.ebnf.
+#######################################################################
 
 language EBNFruby {
 
 noWS
 
-ignore SetError      = "Err" [+\-].
-token  modifier_WS   =  "skipWS" | "noWS".
-       SetCase       = "matchCase" [+\-].
-skip   switches      = SetError | modifier_WS | SetCase.
-       o_comment     = Err+ "#" /[^\r\n]*[\r\n]/.
-       c_comment     = Err- "//" /[^\r\n]*[\r\n]/.
-token  comment       = o_comment | c_comment.
-ignore WS            = { comment | [ \t\n\r] }.
+token  modifier_WS   = "skipWS" | "noWS".
+skip   switches      = modifier_WS.
+token  comment       = /#[^\r\n]*[\r\n]/.
+ignore WS            = { comment | /[ \t\n\r]/ }.
 
-//Character definitions
-overridechar  = [\)\-\~\\\]].               
-# except clause on statement level not handled yet.
-# except part in following range is actually overridechar
-# ORIGINAL:
-# token any     = [\all]~overridechar.
-token any     = [\all~\)\-\~\\\]].               
-dec           = [0123456789].
-ExtChar       = [rnt] | overridechar | (dec dec dec) .
-anychar       = any | ( "\\" ExtChar). 
-
-# Definitions EBNF extensions 
-csallchars    = "\\all".
-token range       = csallchars | ( anychar  ( "-"  anychar )?  ).
-
-except_charset= '~' range+.
-charset       = noWS '[' {  range+ | except_charset }  ']'.
-
+#
 # Regexp - are copied straight to ruby, so the
 #          ruby syntax should be valid.
-re_char       = [\all~/] | "\\/". 
-re_range      = re_char+.
-token regexp  = noWS "/" re_range   "/".
+#
+
+# Note: Order important in following! The '\\/' MUST come first
+token regexp  = /\/(\\\/|[^\/])+\//.
 # End Regexp
                             
 
@@ -71,12 +54,12 @@ token label   = /[_a-zA-Z][_a-zA-Z0-9]*/.
 
 skipWS
 
-//Basic EBNF stuff
-skip basicstatement = charset | regexp | literal| literal_symbol | label.
+# Basic EBNF stuff
+skip basicstatement = regexp | literal| literal_symbol | label.
 group          = statements.
 repeat         = statements.
 
-token postfix     = [+*?].
+token postfix     = /[+*?]/.
 
 ExceptStatement= statement.
 statement      = 
@@ -90,7 +73,7 @@ alternative   = statement  ( '|'  statement)*.
 statements       = (switches* alternative)+.
 
 rule_modifier  = 'entry' | 'ignore' | 'token' | 'skip'.
-rule           = rule_modifier? label Err- '=' Err+ statements '.' .
+rule           = rule_modifier? label '=' statements '.' .
 
 #
 #The actual language definition
@@ -100,21 +83,12 @@ skip languageblock  = 'language' label '{'
 		{ switches | rule } 
 	'}'. 
 
-usingfile      = noWS [a-zA-Z0-9_]+ ( [.] { [a-zA-Z0-9_] } )?.
-languagefile   = Err- "using"  "language" "file" usingfile ".".
-includefile    = "using"  "include" "file" usingfile ".".
-
 #Entry point
-entry language = {languagefile|includefile}  languageblock {languagefile}.
+entry language = languageblock.
+
+}
 
 #
 # End Language Definition.
 #
-
-}
-
-#Following doesn't work any more!!!
-#using language file insertmain.txt.
-
-
 
