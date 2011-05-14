@@ -372,9 +372,8 @@ public class EBNFGeneratorRuby extends EBNFGenerator {
 		"			end\n" +
 		"		end\n" +
 		"\n" +
-		"	rescue  ParseException  => e\n" +
-		"		error \"Exception: \" + e.to_s\n" +
-		"	ensure\n" +
+		"		raise ParseException.new( \"Parsing\", state ) if  state.error?\n" +
+		"\n" +
 		"		return state\n" +
 		"	end\n\n";
 

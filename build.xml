@@ -1,11 +1,14 @@
 <!--
-	$Id$
+	$Id: build.xml 57 2009-09-20 21:15:18Z wri $
   -->
 <project name="parser" default="build" basedir=".">
 	<!-- Following is the timer task
 		 source: http://www.jeckle.de/freeStuff/AntTimerTask/index.html
 	  -->
-	<taskdef name="timer" classname="de.jeckle.AntExtension.Timer"/>
+	<taskdef name="timer"
+		classname="de.jeckle.AntExtension.Timer"
+		classpath="lib/att.jar"
+	/>
 
 	<!-- global properties -->
 	<property name="src"   location="src"/>
@@ -29,7 +32,7 @@
 	</target>
 
 	<target name="compile" depends="init" >
-		<javac srcdir="${src}" destdir="${build}/jar">
+		<javac srcdir="${src}" destdir="${build}/jar" includeantruntime="false">
 
 			<!-- don't compile the main test program at this point -->
 			<exclude name="nl/axizo/EBNF/EBNFMain.java" />
@@ -231,6 +234,101 @@
 	     * End Test Suite     *
 	     ************************ -->
 
+<!--
+	Appointments project
+  -->
+
+	<target name="appt_parse">
+		<timer name="run">
+
+		<!-- Following does not do what I want. TODO: find alternative -->
+		<dependset >
+ 			<srcfilelist
+				dir="appointments"
+       	 		files = "appointments.ebnf"
+			/>
+			<targetfileset
+				dir="${out}/generated"
+       	 		includes = "Appointments.java" />
+		</dependset>
+
+		<java 
+				classname="nl.axizo.EBNF.EBNFMain" 
+				dir="${out}/generated"
+				fork="true"
+				failonerror="true"
+		>
+			<!-- arg value="-p"/>
+			<arg value="nodes.txt"/ -->
+			<!-- up-dir needed because we start in a subdir -->
+			<arg value="../../appointments/appointments.ebnf"/>
+			<classpath>
+				<pathelement location="${dist}/lib/parser.jar"/>
+				<pathelement location="${build}/generated"/>
+			</classpath>
+		</java>
+	  </timer>
+	</target>
+
+	<target name="appt_compile" depends="appt_parse" >
+		<echo>Compiling for appointments</echo>
+		<!-- Compile the generated parse Class -->
+		<javac 
+			srcdir="${out}/generated"
+			destdir="${build}/generated"
+			includes="Appointments.java"
+			includeantruntime="false"
+		>
+			<classpath>
+				<pathelement location="${dist}/lib/parser.jar"/>
+			</classpath>
+		</javac>
+
+		<!-- Compile the support files -->
+		<javac 
+			srcdir="${src}"
+			destdir="${build}/generated"
+			includes="Appointments.java,nl/**"
+			excludes="nl/axizo/test/**"
+			includeantruntime="false"
+		>
+			<classpath>
+				<pathelement location="${dist}/lib/parser.jar"/>
+			</classpath>
+		</javac>
+	</target>
+
+	<target name="appt_test" depends="appt_compile">
+	  <timer name="run">
+		<java 
+				classname="nl.axizo.appointment.AppointmentsMain" 
+				dir="${out}/test"
+				fork="true"
+				failonerror="true"
+		>
+			<!-- up-dir needed because we start in a subdir -->
+			<arg value="../../appointments/test_appt.txt"/>
+			<classpath>
+				<pathelement location="${dist}/lib/parser.jar"/>
+				<pathelement location="${build}/generated"/>
+			</classpath>
+		</java>
+	  </timer>
+	</target>
+
+	<target name="appt_jar" depends="appt_compile" >
+		<jar jarfile="${dist}/lib/appointments.jar" >
+			<fileset dir="${build}/generated"
+            	 includes="nl/axizo/appointment/**, nl/axizo/EBNF/Appointments.class"
+    		/>
+		</jar>
+	</target>
+
+	<target name="appt" depends="appt_test" />
+
+<!--
+	End Appointments project
+  -->
 
 	<target name="clean" >
 	<delete includeemptydirs="true">

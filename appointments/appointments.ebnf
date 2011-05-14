@@ -1,0 +1,69 @@
+language Appointments {
+	# Global definitions
+	decs = noWS [0-9]+.
+
+	# Junk - stuff to be filtered out
+	ignore top = { [\all~P] } 'Provider' 'Page' decs.
+	ignore day = noWS [a-zA-Z]+.
+	line = noWS [\all~\r\n]+ [\r\n]+.
+	ignore headers = noWS line line line line. 
+	ignore headers2 = noWS line line. 
+   	ignore not_reg = '** Patient not fully registered.'.	
+
+	# Useful stuff
+	noWS
+	token date = [0-9][0-9] "/" [0-9][0-9] "/" [0-9][0-9][0-9][0-9].
+	token name = [a-zA-Z,.]+ ( [ ] [,.a-zA-Z]+ )*.
+	token time = [0-9]+ ":" [0-9][0-9] " " ("AM" | "PM" ). 
+
+	token age = [0-9]+ 'yo'.
+	token gender = [FM].
+
+	token phone = "(" decs ") " decs "-" decs.
+
+	# Generic fields
+	token floating = "-"? [0-9]+ "." [0-9]+.
+	token num = [0-9]+.
+	token field = [A-Z0-9]+.
+	skipWS
+
+	#headers
+	dateline = date day name.
+	top_header = top name headers.
+	ignore page_header = not_reg top name headers2 dateline.
+
+	# Records
+	token type = field.
+	token thrpy_1 = "THRPY1".
+
+	token action = noWS [0-9a-zA-Z]+ ( [ ] [a-zA-Z]+ )*.
+	act = action name date phone?.
+
+	note_chars = noWS [\all~ \t\r\n]+.
+	token note_text = noWS note_chars ( [ ]+ note_chars )*.
+	token reason = note_text.
+	appt_note = 'Appt. Note:' note_text. 
+	canceled = 'CANCELED' 'By:' name 'Reason:' reason.
+	rescheduled = 'RESCHEDULED' 'By:' name 'Reason:' reason.
+
+	record = time num type field thrpy_1? name 
+		( '(' ( (age gender ) | age | gender ) ')' )? ("**")?
+		floating date? phone? 
+		act
+		appt_note?
+		(canceled | rescheduled)? .
+
+
+	token total_num = decs.	
+	total = 'Total Appointments For' name 'on' date  ':' total_num.
+
+	# DEBUG: 
+	token next = noWS [\all~\r\n]*.			# Show next unparseable line
+	ignore rest = [\all]*.					# accept rest of file so that parsing doesn't fail.
+
+	day_list  = dateline ( record | page_header )* total. 
+	entry file = top_header
+				day_list* 
+				not_reg
+				(next rest)?. 	# This line needed for eating up final whitespace
+}

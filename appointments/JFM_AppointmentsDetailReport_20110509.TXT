@@ -1,0 +1,306 @@
+
+
+
+  05/09/11	     9:33 AM	                                                          Appointments Detail Report By Provider	                                                                          Page 1	
+                                                                                   JONES FAMILY MEDICINE AND PAIN CLINIC	
+
+
+  Selections:	
+   Appointment Dates:	         From:  	05/09/2011	      To:  	05/10/2011	
+
+    Time	       Length	  Reason	     Loc	        Room	        Equip	       Chart#	   Patient	                                                             Balance	    DOL Pay	        Phone	    (H)	
+                         Reason Description	                                                                           Created by	    Entry Dt	                                       Phone 	   (W)	
+
+  05/09/2011	      Monday	           Jones, Scott C. MD	
+
+    8:00 AM	        15	  JFOLUP	     JFM	         	            	                  	  CARLSON, MARY F   (65yo F)	                                             0.00	                    (480) 844-0829	
+                         FOLLOW UP	                                                                                          PatS	    04/29/2011	                                     	
+  
+    8:15 AM	        15	  JFOLUP	     JFM	         	            	                  	  GARZA, ISRAEL   (57yo M)	                                             -15.00	    05/09/2011	     (480) 897-9159	
+                         FOLLOW UP	                                                                                          PatS	    04/29/2011	                                     	
+  
+    8:30 AM	        15	  JCPX	       JFM	         	            	                  	  MORSE, KAREN A   (56yo F)	                                              0.00	                    (480) 577-8807	
+                         CPX	                                                                                                PatS	    04/29/2011	                                     	
+  
+    8:45 AM	        15	  JFOLUP	     JFM	         	            	                  	  KOTARA, RICHARD   (67yo M)	                                             0.00	                    (480) 396-6457	
+                         FOLLOW UP	                                                                                        AReyes	    05/05/2011	                                     	
+                         Appt. Note:	 SHOULDER PX/APPT 8AM	
+  
+    9:00 AM	        15	  JFOLUP	     JFM	         	            	                  	  LUSKO, CHRISTOPHER   (62yo M)	                                          0.00	                    (602) 463-6390	
+                         FOLLOW UP	                                                                                          PatS	    04/29/2011	                                     	
+  
+    9:15 AM	        15	  JFOLUP	     JFM	         	            	                  	  WALACAVAGE, CANDY S   (55yo F)	                                         0.00	                    (480) 839-8444	
+                         FOLLOW UP	                                                                                          PatS	    04/29/2011	                                     	
+  
+    9:30 AM	        15	  JFOLUP	     JFM	         	            	                  	  ROBERTS, TRACY   (24yo F)	                                              0.00	                    (480) 415-1602	
+                         FOLLOW UP	                                                                                          PatS	    04/29/2011	                                     	
+  
+    9:45 AM	        30	  JCPX	       JFM	         	            	                  	  BELTRAN, MARIA   (61yo F)	                                              0.00	                    	
+                         CPX	                                                                                                PatS	    04/29/2011	                                     	
+  
+   10:15 AM	        30	  JCPX	       JFM	         	            	                  	  STRADLING, JORDAN   (50yo M)	                                           0.00	                    (480) 969-0253	
+                         CPX	                                                                                                PatS	    04/29/2011	                                     (480) 760-1405	
+  
+
+
+
+
+   ** Patient not fully registered.	
+
+
+
+
+
+
+  05/09/11	     9:33 AM	                                                          Appointments Detail Report By Provider	                                                                          Page 2	
+                                                                                   JONES FAMILY MEDICINE AND PAIN CLINIC	
+
+
+    Time	       Length	  Reason	     Loc	        Room	        Equip	       Chart#	   Patient	                                                             Balance	    DOL Pay	        Phone	    (H)	
+                         Reason Description	                                                                           Created by	    Entry Dt	                                       Phone 	   (W)	
+
+  05/09/2011	      Monday	           Jones, Scott C. MD	
+
+   10:45 AM	        15	  JOTHER	     JFM	         	            	                  	  BOULANGER, MARGOT   (35yo F)	                                         185.00	                    (602) 488-7714	
+                         OTHER	                                                                                           BBabitt	    05/02/2011	                                     	
+                         Appt. Note:	 START WEIGHT LOSS PROGRAM	
+  
+   11:00 AM	        30	  JCPX	       JFM	         	            	                  	  HAAKENSON, STEVEN B   (22yo M)	                                         0.00	                    (480) 993-6509	
+                         CPX	                                                                                                PatS	    04/29/2011	                                     	
+  
+   11:00 AM	        15	  JTHERP	     JFM	        THRPY1	       	                  	  BOULANGER, MARGOT   (35yo F)	                                         185.00	                    (602) 488-7714	
+                         THERAPY	                                                                                         BBabitt	    05/02/2011	                                     	
+                      CANCELED	
+                           By:	 Bonnie Babitt	                                         Reason:	  Patient Canceled	
+  
+   11:30 AM	        30	  JPROC	      JFM	         	            	                  	  ZEIGLER, MARGIE   (93yo F)	                                           183.00	    05/02/2011	     (480) 969-8429	
+                         PROCEDURE	                                                                                        AReyes	    05/02/2011	                                     	
+                         Appt. Note:	 RIGHT SHOULDER INJ	
+  
+    1:30 PM	        30	  JCPX	       JFM	         	            	                  	  LOPEZ, JESSICA N   (20yo F)	                                            0.00	                    (480) 553-1995	
+                         CPX	                                                                                                PatS	    04/29/2011	                                     	
+  
+    2:00 PM	        15	  JWGTCK	     JFM	         	            	                  	  REYES, RUTH   (36yo F)	                                                 0.00	                    (480) 440-4469	
+                         WEIGHT CHECK	                                                                                       PatS	    04/29/2011	                                     	
+                         Appt. Note:	 5 weeks	
+  
+    2:15 PM	        15	  JFOLUP	     JFM	         	            	                  	  PERKES, TANNA   (66yo F)	                                             150.00	                    (480) 244-7870	
+                         FOLLOW UP	                                                                                        LGomez	    05/05/2011	                                     	
+                         Appt. Note:	 abnormal labs 1:30 appt	
+  
+    2:30 PM	        30	  JCPX	       JFM	         	            	                  	  ANDERSON, MICHAEL G   (53yo M)	                                         0.00	                    (480) 802-9832	
+                         CPX	                                                                                               Kelly	    04/30/2011	                                     	
+  
+    3:00 PM	        15	  JFOLUP	     JFM	         	            	                  	  RABAGO, BRIANNA N   (20yo F)	                                           0.00	                    (928) 446-1110	
+                         FOLLOW UP	                                                                                         Kelly	    04/30/2011	                                     	
+  
+
+
+   ** Patient not fully registered.	
+
+
+
+
+
+
+  05/09/11	     9:33 AM	                                                          Appointments Detail Report By Provider	                                                                          Page 3	
+                                                                                   JONES FAMILY MEDICINE AND PAIN CLINIC	
+
+
+    Time	       Length	  Reason	     Loc	        Room	        Equip	       Chart#	   Patient	                                                             Balance	    DOL Pay	        Phone	    (H)	
+                         Reason Description	                                                                           Created by	    Entry Dt	                                       Phone 	   (W)	
+
+  05/09/2011	      Monday	           Jones, Scott C. MD	
+
+    3:15 PM	        15	  JFOLUP	     JFM	         	            	                  	  ROMO, WENDY   (36yo F)	                                               198.00	    05/03/2011	     (919) 215-0372	
+                         FOLLOW UP	                                                                                         Kelly	    04/30/2011	                                     (480) 962-0067	
+                         Appt. Note:	 3 MONTHS	
+                      CANCELED	
+                           By:	 Melissa Gomez	                                         Reason:	  Patient Canceled	
+  
+    3:15 PM	        15	  JFOLUP	     JFM	         	            	                  	  RAMOS, ERICA   (32yo F)	                                              206.00	                    (480) 612-4918	
+                         FOLLOW UP	                                                                                        MGomez	    05/05/2011	                                     (480) 612-4917	
+                         Appt. Note:	 START PHENTERMINE	
+  
+    3:30 PM	        30	  JCPX	       JFM	         	            	                  	  MONCIVAIZ, DAVID   (42yo M)	                                            0.00	                    (602) 214-7734	
+                         CPX	                                                                                               Kelly	    04/30/2011	                                     	
+                         Appt. Note:	 LAB RESULTS	
+  
+    4:00 PM	        15	  JFOLUP	     JFM	         	            	                  	  EPPERSON, JIMMY   (42yo M)	                                             0.00	                    (480) 201-9310	
+                         FOLLOW UP	                                                                                         Kelly	    04/30/2011	                                     	
+                         Appt. Note:	 3 MONTHS	
+  
+    4:15 PM	        15	  JWGTCK	     JFM	         	            	                  	  FLORES, CARLA   (23yo F)	                                               0.00	                    (480) 369-2001	
+                         WEIGHT CHECK	                                                                                      Kelly	    04/30/2011	                                     	
+  
+
+    Total Appointments For  	Jones, Scott C. MD	 on 	05/09/2011	:  	23	
+
+  05/10/2011	      Tuesday	          Jones, Scott C. MD	
+
+    8:00 AM	        30	  JCPX	       JFM	         	            	                  	  MCALLISTER, JOHN   (43yo M)	                                            0.00	                    (480) 381-6730	
+                         CPX	                                                                                               Kelly	    04/30/2011	                                     	
+  
+    8:30 AM	        30	  JCPX	       JFM	         	            	                  	  GOERTZ, DAVID   (63yo M)	                                               0.00	                    (480) 897-9752	
+                         CPX	                                                                                               Kelly	    04/30/2011	                                     	
+  
+
+
+
+   ** Patient not fully registered.	
+
+
+
+
+
+
+  05/09/11	     9:33 AM	                                                          Appointments Detail Report By Provider	                                                                          Page 4	
+                                                                                   JONES FAMILY MEDICINE AND PAIN CLINIC	
+
+
+    Time	       Length	  Reason	     Loc	        Room	        Equip	       Chart#	   Patient	                                                             Balance	    DOL Pay	        Phone	    (H)	
+                         Reason Description	                                                                           Created by	    Entry Dt	                                       Phone 	   (W)	
+
+  05/10/2011	      Tuesday	          Jones, Scott C. MD	
+
+    9:00 AM	        30	  JCPX	       JFM	         	            	                  	  KRUEGER, SAMANTHA   (34yo F)	                                           0.00	                    (480) 248-4333	
+                         CPX	                                                                                               Kelly	    04/30/2011	                                     (602) 920-5535	
+  
+    9:15 AM	        15	  JRESUL	     JFM	         	            	                  	  CARBAJAL, ERIC   (28yo M)	                                              0.00	                    (480) 273-5179	
+                         DISCUSS RESULTS	                                                                                  MGomez	    05/09/2011	                                     	
+                         Appt. Note:	 LAB RESULTS	
+  
+    9:30 AM	        15	  JFOLUP	     JFM	         	            	                  	  CANTRELL, JENNIFER   (37yo F)	                                          0.00	                    (623) 910-8135	
+                         FOLLOW UP	                                                                                         Kelly	    04/30/2011	                                     	
+                         Appt. Note:	 6 WEEKS	
+  
+    9:45 AM	        15	  J3MOS	      JFM	         	            	                  	  REED, GLEN   (71yo M)	                                                  0.00	                    (480) 292-6185	
+                         3 MONTH RECHECK	                                                                                   Kelly	    04/30/2011	                                     (480) 981-3121	
+  
+   10:00 AM	        30	  JCPX	       JFM	         	            	                  	  REED, PORTER   (85yo M) **	                                             0.00	                    	
+                         CPX	                                                                                               Kelly	    04/30/2011	                                     	
+  
+   10:30 AM	        15	  JFOLUP	     JFM	         	            	                  	  ROESCHEN, JACK   (60yo M)	                                              0.00	                    (480) 983-3219	
+                         FOLLOW UP	                                                                                         Kelly	    04/30/2011	                                     	
+                         Appt. Note:	 6 WEEKS	
+  
+   10:45 AM	        15	  JCPX	       JFM	         	            	                  	  KELLY, DENNIS   (56yo M)	                                               0.00	                    (520) 560-3777	
+                         CPX	                                                                                               Kelly	    04/30/2011	                                     	
+  
+   11:00 AM	        30	  JNP	        JFM	         	            	                  	  VANWALLENE, BOBETTE   (57yo F)	                                         0.00	                    (480) 895-5017	
+                         NEW PATIENT	                                                                                       Kelly	    04/30/2011	                                     	
+                         Appt. Note:	 RE-ESTABLISH	
+  
+    1:30 PM	        15	  JFOLUP	     JFM	         	            	                  	  FISCHER, CATHERINE   (93yo F)	                                          0.00	                    (480) 839-3929	
+                         FOLLOW UP	                                                                                         Kelly	    04/30/2011	                                     	
+                         Appt. Note:	 2 WEEKS	
+  
+
+
+
+   ** Patient not fully registered.	
+
+
+
+
+
+
+  05/09/11	     9:33 AM	                                                          Appointments Detail Report By Provider	                                                                          Page 5	
+                                                                                   JONES FAMILY MEDICINE AND PAIN CLINIC	
+
+
+    Time	       Length	  Reason	     Loc	        Room	        Equip	       Chart#	   Patient	                                                             Balance	    DOL Pay	        Phone	    (H)	
+                         Reason Description	                                                                           Created by	    Entry Dt	                                       Phone 	   (W)	
+
+  05/10/2011	      Tuesday	          Jones, Scott C. MD	
+
+    1:45 PM	        15	  JMEDCK	     JFM	         	            	                  	  OLDENBERGH, JOSEPH   (78yo M)	                                          0.00	                    (480) 586-7006	
+                         MEDICATION CHECK	                                                                                  Kelly	    04/30/2011	                                     	
+                         Appt. Note:	 FOLLOW UP MED CHANGE	
+  
+    2:00 PM	        15	  J6MOS	      JFM	         	            	                  	  WEBB, MICHELLE   (54yo F)	                                              0.00	                    (480) 201-3398	
+                         6 MONTH RECHECK	                                                                                   Kelly	    04/30/2011	                                     	
+  
+    2:15 PM	        15	  JFOLUP	     JFM	         	            	                  	  PITTMAN, LANITA   (43yo F)	                                             0.00	                    (602) 561-5384	
+                         FOLLOW UP	                                                                                        AReyes	    05/02/2011	                                     	
+                         Appt. Note:	 MED REFILL,LAB ORDERS	
+  
+    2:30 PM	        30	  JCPX	       JFM	         	            	                  	  KOENIG, LAURIE   (50yo F)	                                              0.00	                    (480) 820-2903	
+                         CPX	                                                                                               Kelly	    04/30/2011	                                     	
+                         Appt. Note:	 LAB RESULTS	
+                      RESCHEDULED	
+                           By:	 Laura Gomez	                                           Reason:	  Patient Rescheduled	
+  
+    2:30 PM	        15	  JURI	       JFM	         	            	                  	  MOSER, JANICE **	                                                       0.00	                    	
+                         URI	                                                                                             BBabitt	    05/05/2011	                                     	
+  
+    2:45 PM	        15	  4OTHER	     JFM	         	            	                  	  GONZALES, LORI   (54yo)	                                                0.00	                    	
+                         4 Other	                                                                                          HWeber	    05/05/2011	                                     	
+                         Appt. Note:	 MRI RESULTS	
+  
+    3:00 PM	        15	  J3MOS	      JFM	         	            	                  	  INCE, MICHAEL **	                                                       0.00	                    	
+                         3 MONTH RECHECK	                                                                                   Kelly	    04/30/2011	                                     	
+  
+    3:15 PM	        15	  JFOLUP	     JFM	         	            	                  	  CAHILL, DWIGHT **	                                                      0.00	                    	
+                         FOLLOW UP	                                                                                         Kelly	    04/30/2011	                                     	
+                         Appt. Note:	 4 WEEKS	
+                      RESCHEDULED	
+                           By:	 Kelly Lloyd	                                           Reason:	  Patient Rescheduled	
+  
+
+
+   ** Patient not fully registered.	
+
+
+
+
+
+
+  05/09/11	     9:33 AM	                                                          Appointments Detail Report By Provider	                                                                          Page 6	
+                                                                                   JONES FAMILY MEDICINE AND PAIN CLINIC	
+
+
+    Time	       Length	  Reason	     Loc	        Room	        Equip	       Chart#	   Patient	                                                             Balance	    DOL Pay	        Phone	    (H)	
+                         Reason Description	                                                                           Created by	    Entry Dt	                                       Phone 	   (W)	
+
+  05/10/2011	      Tuesday	          Jones, Scott C. MD	
+
+    3:15 PM	        15	  JFOLUP	     JFM	         	            	                  	  BATORY, LINDA   (56yo F)	                                              82.00	    05/03/2011	     (480) 423-8077	
+                         FOLLOW UP	                                                                                       BBabitt	    05/03/2011	                                     	
+                         Appt. Note:	 1 WEEK	
+  
+    3:30 PM	        15	  JFOLUP	     JFM	         	            	                  	  CAHILL, DWIGHT **	                                                      0.00	                    	
+                         FOLLOW UP	                                                                                         Kelly	    04/30/2011	                                     	
+                         Appt. Note:	 4 WEEKS	
+  
+    3:45 PM	        15	  JFOLUP	     JFM	         	            	                  	  KENNEDY, CHAD **	                                                       0.00	                    	
+                         FOLLOW UP	                                                                                         Kelly	    04/30/2011	                                     	
+                         Appt. Note:	 4 WEEKS	
+  
+    4:00 PM	        15	  J3MOS	      JFM	         	            	                  	  LANGHOFF, ROBERT   (M)	                                               106.00	    05/05/2011	     (602) 750-2619	
+                         3 MONTH RECHECK	                                                                                   Kelly	    04/30/2011	                                     	
+  
+    4:15 PM	        15	  J3MOS	      JFM	         	            	                  	  GILMAN, MICHAEL **	                                                     0.00	                    	
+                         3 MONTH RECHECK	                                                                                   Kelly	    04/30/2011	                                     	
+  
+    4:30 PM	        30	  JPROC	      JFM	         	            	                  	  HUSTON, DONALD   (32yo M)	                                              0.00	                    (480) 802-4489	
+                         PROCEDURE	                                                                                         Kelly	    04/30/2011	                                     	
+                         Appt. Note:	 SKIN TAG ON NECK	
+  
+
+    Total Appointments For  	Jones, Scott C. MD	 on 	05/10/2011	:  	25	
+
+
+
+
+
+
+
+
+
+
+
+   ** Patient not fully registered.	
+
+
+
