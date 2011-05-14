@@ -11,11 +11,15 @@ public class AppointmentsMain {
 		String nodesFile = "nodes.txt";
 		boolean parseOnly = false;
 		String inFile;
-		final String outfile   = "output.csv";
+		String outfile   = "output.csv";
 
 		if ( argv.length == 0 ) {
 			Util.info("No input file specified");
 			System.exit(-1); 
+		} else if ( argv.length == 1 ) {
+			Util.info("No output file specified, using default " + outfile );
+		} else if ( argv.length == 2 ) {
+			outfile   = argv[1];
 		}
 
 		inFile   = argv[0];
