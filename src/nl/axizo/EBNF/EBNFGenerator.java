@@ -20,15 +20,18 @@ public class EBNFGenerator extends Generator {
 	/**
  	 * Generate output from the current node tree.
  	 */
-	public void generate( State state ) throws ParseException {
+	public void generate( State state, String outfile ) throws ParseException {
 		String output = "";
 
 		Node root = state.getCurNode();
 
 		String className       = root.get("language").get("label").getValue();
-		final String outfile   = className + ".java";
 		Node   member_patterns = root.get("temp").get("members");
 		Node   init_patterns   = root.get("temp").get("ctor");
+
+		// parameter value is ignored, we derive the filename from the
+		// class name in the parsed data.
+	    outfile = className + ".java";
 
 		Map actionMap = getActions(root);
 

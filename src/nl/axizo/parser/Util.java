@@ -14,9 +14,13 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Hashtable;
 import java.util.Map;
+import org.apache.log4j.Logger;
 
 
 public class Util {
+
+	private static Logger logger = org.apache.log4j.Logger.getLogger(Util.class);
+
 	public static final int TRACE   = 10;
 	public static final int INFO    = 20;
 	public static final int WARNING = 30;
@@ -43,10 +47,10 @@ public class Util {
 	}
 
 	public static void trace  (int level, String str) { out( level  , str); }
-	public static void trace  (String str) { out( TRACE  , str); }
-	public static void info   (String str) { out( INFO   , str); }
-	public static void warning(String str) { out( WARNING, str); }
-	public static void error  (String str) { out( ERROR  , str); }
+	public static void trace  (String str) { /* out( TRACE  , str); */ logger.debug( str); }
+	public static void info   (String str) { /* out( INFO   , str); */ logger.info(str); }
+	public static void warning(String str) { /* out( WARNING, str); */ logger.warn(str); }
+	public static void error  (String str) { /* out( ERROR  , str); */ logger.error( str); }
 
 
 

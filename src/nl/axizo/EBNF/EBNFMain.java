@@ -87,7 +87,7 @@ public class EBNFMain {
 				translator.translate( state );
 	
 				// Create output
-				generator.generate( state );
+				generator.generate( state, null );
 	
 			} catch( ParseException e ) {
 				Util.error("Error during validation/translation/generation: " + e.getMessage() );

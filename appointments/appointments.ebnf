@@ -1,6 +1,9 @@
 language Appointments {
 	# Global definitions
-	decs = noWS [0-9]+.
+	noWS
+	decs = [0-9]+.
+	spaced_field  = [a-zA-Z.]+ ( [ ] [a-zA-Z.]+ )*.
+	skipWS
 
 	# Junk - stuff to be filtered out
 	ignore top = { [\all~P] } 'Provider' 'Page' decs.
@@ -13,13 +16,17 @@ language Appointments {
 	# Useful stuff
 	noWS
 	token date = [0-9][0-9] "/" [0-9][0-9] "/" [0-9][0-9][0-9][0-9].
-	token name = [a-zA-Z,.]+ ( [ ] [,.a-zA-Z]+ )*.
+	token name = spaced_field.
+	token lastname = spaced_field.
+	token firstname = spaced_field.
+	skip patient = lastname ', ' firstname. 
+	doctor = lastname ', ' firstname. 
 	token time = [0-9]+ ":" [0-9][0-9] " " ("AM" | "PM" ). 
 
 	token age = [0-9]+ 'yo'.
 	token gender = [FM].
 
-	token phone = "(" decs ") " decs "-" decs.
+	token phone = '(' decs ')' " " decs '-' decs.
 
 	# Generic fields
 	token floating = "-"? [0-9]+ "." [0-9]+.
@@ -28,7 +35,7 @@ language Appointments {
 	skipWS
 
 	#headers
-	dateline = date day name.
+	dateline = date day doctor.
 	top_header = top name headers.
 	ignore page_header = not_reg top name headers2 dateline.
 
@@ -46,7 +53,7 @@ language Appointments {
 	canceled = 'CANCELED' 'By:' name 'Reason:' reason.
 	rescheduled = 'RESCHEDULED' 'By:' name 'Reason:' reason.
 
-	record = time num type field thrpy_1? name 
+	record = time num type field thrpy_1? patient 
 		( '(' ( (age gender ) | age | gender ) ')' )? ("**")?
 		floating date? phone? 
 		act
@@ -55,7 +62,7 @@ language Appointments {
 
 
 	token total_num = decs.	
-	total = 'Total Appointments For' name 'on' date  ':' total_num.
+	total = 'Total Appointments For' doctor 'on' date  ':' total_num.
 
 	# DEBUG: 
 	token next = noWS [\all~\r\n]*.			# Show next unparseable line

@@ -20,6 +20,6 @@ public abstract class Generator {
 	/**
  	 * Generate output from the current node tree.
  	 */
-	public abstract void generate( State state ) throws ParseException;
+	public abstract void generate( State state, String outfile ) throws ParseException;
 }
 

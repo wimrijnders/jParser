@@ -64,19 +64,17 @@ public class CSVGenerator extends Generator {
 	/**
  	 * Generate output from the current node tree.
  	 */
-	public void generate( State state ) throws ParseException {
+	public void generate( State state, String outfile ) throws ParseException {
 		String output = "";
 
 		Node root = state.getCurNode().get("file");;
-
-		final String outfile   = "output.csv";
 
 		///////////////////////////////////
 		// Perform the output generation
 		///////////////////////////////////
 
 		// Fields to extract
-		String[] fields = { "date", "time", "name", "age", "gender", "phone" };
+		String[] fields = { "date", "time", "firstname", "lastname", "phone" };
 	
 
 		// Create the file header.	

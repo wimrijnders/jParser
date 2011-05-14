@@ -917,7 +917,7 @@ public class EBNFInitial extends BasicParser {
 				translator.translate( state );
 	
 				// Create output
-				generator.generate( state );
+				generator.generate( state, null );
 	
 			} catch( ParseException e ) {
 				error("Error during validation/translation/generation: " + e.getMessage() );

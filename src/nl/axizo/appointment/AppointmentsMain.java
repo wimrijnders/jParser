@@ -11,9 +11,10 @@ public class AppointmentsMain {
 		String nodesFile = "nodes.txt";
 		boolean parseOnly = false;
 		String inFile;
+		final String outfile   = "output.csv";
 
 		if ( argv.length == 0 ) {
-			Util.info("No input file specified;
+			Util.info("No input file specified");
 			System.exit(-1); 
 		}
 
@@ -33,7 +34,7 @@ public class AppointmentsMain {
 		} else {
 			try {
 				Generator gen = new CSVGenerator();
-				gen.generate(state);
+				gen.generate(state, outfile);
 			} catch( ParseException e ) {
 				Util.error("Error during validation/translation/generation: " + e.getMessage() );
 
