@@ -320,27 +320,42 @@ public class EBNFTranslator extends Translator {
 			Node n = (Node) res.get(i);
 			String repeat = "";
 
-			// Statement should contain single child of type
-			// label, charset or literal, and optionally
-			// a repeat postfix
-			if ( n.numChildren() == 2  && !n.get( "postfix" ).isNull() ) {
+			int num_children= n.numChildren();
+			int first_child = 0;
+			boolean isNot = false;
+
+			// Statement should contain:
+			//  - optional not operator
+			//  - single child of type label, charset or literal, OR group
+			//  - Optionally repeat postfix
+
+			if ( n.get(0).getKey() == "not" ) {
+				Util.info( "not-operator detected");
+				isNot = true;
+				
+				// Check and translate rest of statements
+				num_children--;
+				first_child++;
+			}
+
+			if ( num_children == 2  && !n.get( "postfix" ).isNull() ) {
 					repeat = n.get("postfix").getValue();
-			} else if ( n.numChildren() > 1 ) {
+			} else if ( num_children > 1 ) {
 				//TODO: except statement not handled yet. Implementation handling hereof
 
-				String errMsg = "Too many child nodes detected for statement. There should " +
-					"be one, with at most one postfix node.";
+				String errMsg = "Too many child nodes detected for statement. " +
+					"There should be one, with at most one postfix node.";
 
 				throw new ParseException( errMsg );
-			} else if ( n.numChildren() == 0 ) {
-				String errMsg = "No child nodes detected for statement. There should " +
-					"be one, with at most one postfix node.";
+			} else if ( num_children == 0 ) {
+				String errMsg = "No child nodes detected for statement. " +
+					" There should be one, with at most one postfix node.";
 
 				throw new ParseException( errMsg );
 			} 
 
 			// TODO: assert that statement and postfix have correct order at this point
-			Node child = n.get(0);
+			Node child = n.get( first_child );
 
 			String param1 = null;
 			String param2 = null;
@@ -351,6 +366,10 @@ public class EBNFTranslator extends Translator {
 			if ( !"".equals(repeat) ) {
 				if ( "literal_symbol".equals( child.getKey() ) ) {
 					throw new ParseException("Can't handle repeat postfixes on literal_symbols.");
+				}
+
+				if ( isNot ) {
+					throw new ParseException("Can't combine not-operator with repeat postfixes (yet).");
 				}
 
 				if ( "?".equals( repeat ) ) {
@@ -371,7 +390,7 @@ public class EBNFTranslator extends Translator {
 
 			// For a literal symbol, no output should be generated
 			// after parsing. Following code takes care of that.
- 				//I take it back - they SHOULD be present in output 
+ 			//I take it back - they SHOULD be present in output 
  				
 			if ( "literal_symbol".equals( child.getKey() ) ) {
 				// Enable ignore
@@ -385,6 +404,7 @@ public class EBNFTranslator extends Translator {
 			n.removeChildren();
 			if ( param1 != null ) n.addChild( "param1", param1 );
 			if ( param2 != null ) n.addChild( "param2", param2 );
+			if ( isNot ) n.addChild( "not", "" );
 		}
 	}
 

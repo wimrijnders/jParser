@@ -64,6 +64,10 @@
 
 	<target name="run" depends="build" >
 	  <timer name="run">
+		<copy file="${src}/log4j.properties" 
+			tofile="${build}/generated/log4j.properties" 
+		/>
+
 		<java 
 				classname="nl.axizo.EBNF.EBNFInitial" 
 				dir="${out}/generated"
@@ -71,10 +75,13 @@
 				failonerror="true"
 		>
 			<!-- up-dir needed because we start in a subdir -->
-			<!-- arg value="../../ebnf.ebnf"/ -->
-			<arg value="../../ebnfruby.ebnf"/>
+			<arg value="../../ebnf.ebnf"/>
+			<!-- arg value="../../ebnfruby.ebnf"/ -->
 			<classpath>
+				<!-- Following for log4j.properties -->
+				<pathelement location="${build}/generated"/>
 				<pathelement location="${dist}/lib/parser.jar"/>
+				<path refid="lib.path"/>
 			</classpath>
 		</java>
 	  </timer>
@@ -121,7 +128,9 @@
 		<copy file="${src}/nl/axizo/EBNF/EBNFMain.java" 
 			tofile="${out}/generated/nl/axizo/EBNF/EBNFMain.java" 
 		/>
-		<javac destdir="${build}/generated">
+		<javac destdir="${build}/generated"
+			includeantruntime="false"
+		>
 			<src path="${out}/generated"/>
 			<classpath>
 				<pathelement location="${dist}/lib/parser.jar"/>
@@ -146,6 +155,7 @@
 			<arg value="nodes_test.txt"/>
 			<arg value="../ebnf.ebnf"/>
 			<classpath>
+				<path refid="lib.path"/>
 				<pathelement location="${dist}/lib/parser.jar"/>
 				<pathelement location="${build}/generated"/>
 			</classpath>
@@ -282,6 +292,7 @@
 			<classpath>
 				<pathelement location="${dist}/lib/parser.jar"/>
 				<pathelement location="${build}/generated"/>
+				<path refid="lib.path"/>
 			</classpath>
 		</java>
 	  </timer>

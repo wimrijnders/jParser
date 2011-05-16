@@ -166,6 +166,11 @@ public class EBNFGenerator extends Generator {
 				// If parameters were passed, use those instead
 				Node param1 = n.get("call").get("param1");
 				Node param2 = n.get("call").get("param2");
+				boolean isNot = !n.get("call").get("not").isNull();
+
+				if ( isNot ) {
+					param2 = new Node( "param2", "true");
+				}
 
 				// Param1 overrides default value
 				if ( !param1.isNull() ) {
@@ -180,8 +185,23 @@ public class EBNFGenerator extends Generator {
 							+ "' for call to '" + value + "'");
 				}
 
+
+				if ( isNot ) {
+					Util.info("Not-operator detected");
+
+					// Not-operator inverts the return value of the call
+					// result should not be added to the parser tree
+					if ( !mustReturn ) {
+						value = "!" + value;
+					}
+				} else {
+					if ( mustReturn ) {
+						value = "!" + value;
+					}
+				}
+
 				if ( mustReturn ) {
-					out += "\t\tif( !" + value + ", false" + throwParams + " ) ) return false;\n";
+					out += "\t\tif( " + value + ", false" + throwParams + " ) ) return false;\n";
 				} else {
 					out += "\t\t" + value + ", false" + throwParams + " );\n";
 				}

@@ -72,8 +72,11 @@ repeat         = statements.
 
 token postfix     = [+*?].
 
+not = "!".
+
 ExceptStatement= statement.
-statement      = 
+statement      =
+		not?
 		( '{' repeat '}' ) |
 		(
 			( basicstatement  | ( '(' group ')' ) ) 

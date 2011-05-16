@@ -48,8 +48,9 @@ public class EBNFMain {
 
 		inFile   = argv[curarg];
 
-		//NOTE: This is the ruby parser!!!!!
-		BasicParser parser = new EBNFruby( inFile );
+		BasicParser parser = new EBNF( inFile );
+		//NOTE: Following is the ruby parser!!!!!
+		//BasicParser parser = new EBNFruby( inFile );
 		//parser.setTraceLevel( Util.TRACE );
 		parser.setFirstTwoLines(true);
 		State state = parser.parse();
@@ -85,6 +86,7 @@ public class EBNFMain {
 
 				// Do node translations
 				translator.translate( state );
+				parser.saveNodes( state, "after_translate.txt" );
 	
 				// Create output
 				generator.generate( state, null );
