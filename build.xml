@@ -12,10 +12,10 @@
 
 	<!-- global properties -->
 	<property name="src"   location="src"/>
+	<property name="grammar" location="grammar"/>
 	<property name="build" location="build"/>
-	<property name="dist"  location="dist"/>
-	<property name="doc"   location="output/doc"/>
-	<property name="out"   location="output"/>
+	<property name="tests" location="tests"/>
+	<property name="lib" location="lib"/>
 	<property name="log4j" value="log4j-1.2.16.jar" />
 
 	<path id="lib.path">
@@ -27,21 +27,18 @@
 	<target name="init">
 		<!-- Create the time stamp -->
 		<tstamp/>
-		
 		<mkdir dir="${build}"/>
-		<mkdir dir="${build}/jar"/>
-		<mkdir dir="${build}/generated"/>
+		<mkdir dir="${build}/gen"/>
+		<mkdir dir="${build}/class"/>
+		<mkdir dir="${build}/lib"/>
+		<mkdir dir="${build}/doc"/>
 		<mkdir dir="${build}/test"/>
-		<mkdir dir="${dist}/lib"/>
-		<mkdir dir="${out}"/>
-		<mkdir dir="${out}/generated"/>
-		<mkdir dir="${out}/test"/>
 	</target>
 
 	<target name="compile" depends="init" >
 		<javac
 			srcdir="${src}"
-			destdir="${build}/jar"
+			destdir="${build}/class"
 			includeantruntime="false"
 		>
 			<classpath refid="lib.path"/>
@@ -49,75 +46,83 @@
 			<!-- don't compile the main test program at this point -->
 			<exclude name="nl/axizo/EBNF/EBNFMain.java" />
 
-			<!-- No stuff from the appointments project -->
-			<exclude name="nl/axizo/appointment/**" />
-
 			<!-- No Test classes for the regular build -->
 			<exclude name="nl/axizo/**/*Test.java" />
 		</javac>
 	</target>
 
 	<target name="build" depends="compile" >
-		<jar jarfile="${dist}/lib/parser.jar" basedir="${build}/jar"/>
+		<jar jarfile="${build}/lib/parser.jar" basedir="${build}/class"/>
 	</target>
 
 
 	<target name="run" depends="build" >
 	  <timer name="run">
 		<copy file="${src}/log4j.properties" 
-			tofile="${build}/generated/log4j.properties" 
+			tofile="${build}/class/log4j.properties" 
 		/>
 
 		<java 
 				classname="nl.axizo.EBNF.EBNFInitial" 
-				dir="${out}/generated"
+				dir="${build}/gen"
 				fork="true"
 				failonerror="true"
 		>
-			<!-- up-dir needed because we start in a subdir -->
-			<arg value="../../ebnf.ebnf"/>
-			<!-- arg value="../../ebnfruby.ebnf"/ -->
+			<arg value="${grammar}/ebnf.ebnf"/>
 			<classpath>
 				<!-- Following for log4j.properties -->
-				<pathelement location="${build}/generated"/>
-				<pathelement location="${dist}/lib/parser.jar"/>
+				<pathelement location="${build}/class"/>
+				<pathelement location="${build}/lib/parser.jar"/>
 				<path refid="lib.path"/>
 			</classpath>
 		</java>
 	  </timer>
 	</target>
 
-	<target name="parse" depends="build">
+	<target name="parse" depends="build" >
 		<description>
 			This task is same as 'run', with the addition
 			two parameters
 		</description>
 
-	  <timer name="parse">
+	  <timer name="run">
+		<copy file="${src}/log4j.properties" 
+			tofile="${build}/class/log4j.properties" 
+		/>
+
 		<java 
 				classname="nl.axizo.EBNF.EBNFInitial" 
-				dir="${out}/generated"
+				dir="${build}/gen"
 				fork="true"
 				failonerror="true"
 		>
 			<arg value="-p"/>
 			<arg value="nodes_parseonly.txt"/>
-			<!-- up-dir needed because we start in a subdir -->
-			<!-- arg value="../../ebnf.ebnf"/ -->
-			<arg value="../../ebnfruby.ebnf"/>
+			<arg value="${grammar}/ebnf.ebnf"/>
 			<classpath>
-				<pathelement location="${dist}/lib/parser.jar"/>
+				<!-- Following for log4j.properties -->
+				<pathelement location="${build}/class"/>
+				<pathelement location="${build}/lib/parser.jar"/>
+				<path refid="lib.path"/>
 			</classpath>
 		</java>
 	  </timer>
 	</target>
 
 	<target name="doc" depends="build">
-		<javadoc sourcepath="${src}"
-				 destdir="${doc}"
+		<javadoc 
+				 destdir="${build}/doc"
 				 access="private"
 		>
 			<doctitle><![CDATA[<h1>Parser Technical Documentation</h1>]]></doctitle>
+			<fileset dir="${src}">
+				<exclude name="**/*Test*" />
+				<exclude name="**/*.properties" />
+    		</fileset>
+			<fileset dir="${build}/gen" />
+			<classpath>
+				<path refid="lib.path"/>
+			</classpath>
 		</javadoc>
 	</target>
 
@@ -126,12 +131,12 @@
 		<!-- Compile the generated parser -->	
 		<!-- TODO: Check if copying really necessary -->
 		<copy file="${src}/nl/axizo/EBNF/EBNFMain.java" 
-			tofile="${out}/generated/nl/axizo/EBNF/EBNFMain.java" 
+			tofile="${build}/gen/nl/axizo/EBNF/EBNFMain.java" 
 		/>
-		<javac destdir="${build}/generated"
+		<javac destdir="${build}/class"
 			includeantruntime="false"
 		>
-			<src path="${out}/generated"/>
+			<src path="${build}/gen"/>
 			<classpath>
 				<pathelement location="${dist}/lib/parser.jar"/>
 			</classpath>
@@ -144,7 +149,7 @@
 	  <timer name="test">
 		<java 
 				classname="nl.axizo.EBNF.EBNFMain" 
-				dir="${out}"
+				dir="${build}/test"
 				fork="true"
 				failonerror="true"
 		>
@@ -153,52 +158,11 @@
 			<!-- up-dir needed because we start in a subdir -->
 			<arg value="-p"/>
 			<arg value="nodes_test.txt"/>
-			<arg value="../ebnf.ebnf"/>
+			<arg value="${grammar}/ebnf.ebnf"/>
 			<classpath>
 				<path refid="lib.path"/>
-				<pathelement location="${dist}/lib/parser.jar"/>
-				<pathelement location="${build}/generated"/>
-			</classpath>
-		</java>
-	  </timer>
-	</target>
-
-	<!-- ************************
-	     * Ruby Generation      *
-	     ************************ -->
-
-	<target name="compiler" depends="run" >
-		<echo>Compiling for ruby</echo>
-		<!-- Compile the generated parser -->	
-		<copy file="${src}/nl/axizo/EBNF/EBNFMain.java" 
-			tofile="${out}/generated/nl/axizo/EBNF/EBNFMain.java" 
-		/>
-		<javac 
-			srcdir="${out}/generated"
-			destdir="${build}/generated"
-			includes="EBNFruby.java,nl/**"
-			includeantruntime="false"
-		>
-			<classpath>
-				<pathelement location="${dist}/lib/parser.jar"/>
-			</classpath>
-		</javac>
-	</target>
-
-	<target name="runr" depends="compiler" >
-	  <timer name="run">
-		<java 
-				classname="nl.axizo.EBNF.EBNFMain" 
-				dir="${out}"
-				fork="true"
-				failonerror="true"
-		>
-			<arg value="-r"/>
-			<!-- up-dir needed because we start in a subdir -->
-			<arg value="../ebnfruby2.ebnf"/>
-			<classpath>
-				<pathelement location="${dist}/lib/parser.jar"/>
-				<pathelement location="${build}/generated"/>
+				<pathelement location="${build}/lib/parser.jar"/>
+				<pathelement location="${build}/class"/>
 			</classpath>
 		</java>
 	  </timer>
@@ -214,39 +178,47 @@
 
 		<java 
 				classname="nl.axizo.EBNF.EBNFMain" 
-				dir="${out}/test"
+				dir="${build}/test"
 				fork="true"
 				failonerror="true"
 		>
 			<!-- Enable following for profiling output -->
 			<!-- jvmarg value="-javaagent:/home/wri/project/lib/jip/profile/profile.jar" / -->
 			<!-- up-dir needed because we start in a subdir -->
-			<arg value="../../test_suite/digits.ebnf"/>
+			<arg value="${tests}/digits.ebnf"/>
 			<classpath>
-				<pathelement location="${dist}/lib/parser.jar"/>
-				<pathelement location="${build}/generated"/>
+				<pathelement location="${build}/lib/parser.jar"/>
+				<pathelement location="${build}/gen"/>
+				<path refid="lib.path"/>
 			</classpath>
 		</java>
 	</target>
-		
+
+	<!-- TODO: Following does not work yet because junit is
+		not present on system -->
 	<target name="test_suite" depends="create_test_suite" >
 		<echo>Compiling test suite</echo>
 
 		<!-- Compile the parsers used for testing -->
-		<javac destdir="${build}/test">
-			<src path="${out}/test"/>
+		<javac destdir="${build}/test"
+			includeantruntime="false"
+		>
+			<src path="${build}/test"/>
 			<classpath>
-				<pathelement location="${dist}/lib/parser.jar"/>
+				<pathelement location="${build}/lib/parser.jar"/>
 			</classpath>
 		</javac>
 
-		<!-- Compile the testing classes -->
-		<javac destdir="${build}/test">
+		<echo>Compiling the testing classes</echo>
+		<javac destdir="${build}/test"
+			includeantruntime="false"
+		>
 			<src path="${src}"/>
 			<include name="**/*Test.java" />
 			<classpath>
 				<pathelement location="${dist}/lib/parser.jar"/>
 				<pathelement location="${build}/test"/>
+				<path refid="lib.path"/>
 			</classpath>
 		</javac>
 
@@ -261,115 +233,9 @@
 		</junit>
 	</target>
 
-	<!-- ************************
-	     * End Test Suite     *
-	     ************************ -->
-
-<!--
-	Appointments project
-  -->
-
-	<target name="appt_uptodate">
-		<uptodate property="isUpToDate"
-            srcfile="appointments/appointments.ebnf"
-            targetfile="${out}/generated/Appointments.java"
-		/>
-	</target>
-
-	<target name="appt_parse" depends="appt_uptodate" unless="isUpToDate">
-		<timer name="run">
-
-		<java 
-				classname="nl.axizo.EBNF.EBNFMain" 
-				dir="${out}/generated"
-				fork="true"
-				failonerror="true"
-		>
-			<!-- arg value="-p"/>
-			<arg value="nodes.txt"/ -->
-			<!-- up-dir needed because we start in a subdir -->
-			<arg value="../../appointments/appointments.ebnf"/>
-			<classpath>
-				<pathelement location="${dist}/lib/parser.jar"/>
-				<pathelement location="${build}/generated"/>
-				<path refid="lib.path"/>
-			</classpath>
-		</java>
-	  </timer>
-	</target>
-
-	<target name="appt_compile" depends="appt_parse" >
-		<echo>Compiling for appointments</echo>
-		<!-- Compile the generated parse Class -->
-		<javac 
-			srcdir="${out}/generated"
-			destdir="${build}/generated"
-			includes="Appointments.java"
-			includeantruntime="false"
-		>
-			<classpath>
-				<pathelement location="${dist}/lib/parser.jar"/>
-			</classpath>
-		</javac>
-
-		<!-- Compile the support files -->
-		<javac 
-			srcdir="${src}"
-			destdir="${build}/generated"
-			includes="Appointments.java,nl/**"
-			excludes="nl/axizo/test/**"
-			includeantruntime="false"
-		>
-			<classpath>
-				<pathelement location="${dist}/lib/parser.jar"/>
-				<path refid="lib.path"/>
-			</classpath>
-		</javac>
-	</target>
-
-
-	<target name="appt_test" depends="appt_compile">
-	  <timer name="run">
-		<java 
-				classname="nl.axizo.appointment.AppointmentsMain" 
-				dir="${out}/test"
-				fork="true"
-				failonerror="true"
-		>
-			<!-- up-dir needed because we start in a subdir -->
-			<arg value="../../appointments/test_appt.txt"/>
-			<classpath>
-				<pathelement location="${dist}/lib/parser.jar"/>
-				<pathelement location="${build}/generated"/>
-				<path refid="lib.path"/>
-			</classpath>
-		</java>
-	  </timer>
-	</target>
-
-	<target name="appt_jar" depends="appt_compile" >
-		<jar jarfile="${dist}/lib/appointments.jar" >
-			<fileset dir="${build}/generated"
-            	 includes="nl/axizo/appointment/**, nl/axizo/EBNF/Appointments.class"
-    		/>
-		</jar>
-	</target>
-
-	<target name="appt" depends="appt_test" />
-
-<!--
-	End Appointments project
-  -->
-
 	<target name="clean" >
 	<delete includeemptydirs="true">
 		<fileset dir="${build}">
-			<include name="**/*" />
-		</fileset>
-		<fileset dir="${dist}">
-			<include name="**/*" />
-		</fileset>
-		<fileset dir="${out}" >
 			<include name="**/*" />
 		</fileset>
 	</delete>

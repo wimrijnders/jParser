@@ -1,0 +1,256 @@
+<!--
+	This buildfile contains tasks for creating a ruby compiler from the jparser
+	project. It is not complete and needs to be restructured.
+  -->
+<project name="parser" default="build" basedir=".">
+	<!-- Following is the timer task
+		 source: http://www.jeckle.de/freeStuff/AntTimerTask/index.html
+	  -->
+	<taskdef name="timer"
+		classname="de.jeckle.AntExtension.Timer"
+		classpath="lib/att.jar"
+	/>
+
+	<!-- global properties -->
+	<property name="src"   location="src"/>
+	<property name="build" location="build"/>
+	<property name="dist"  location="dist"/>
+	<property name="doc"   location="output/doc"/>
+	<property name="out"   location="output"/>
+	<property name="log4j" value="log4j-1.2.16.jar" />
+
+	<path id="lib.path">
+		<fileset dir="lib">
+       		<include name="${log4j}"/>
+    	</fileset>
+    </path>
+
+	<target name="init">
+		<!-- Create the time stamp -->
+		<tstamp/>
+		
+		<mkdir dir="${build}"/>
+		<mkdir dir="${build}/jar"/>
+		<mkdir dir="${build}/generated"/>
+		<mkdir dir="${build}/test"/>
+		<mkdir dir="${dist}/lib"/>
+		<mkdir dir="${out}"/>
+		<mkdir dir="${out}/generated"/>
+		<mkdir dir="${out}/test"/>
+	</target>
+
+<!-- Skip specific jparser stuff here -->
+
+	<!-- ************************
+	     * Ruby Generation      *
+	     ************************ -->
+
+	<target name="compiler" depends="run" >
+		<echo>Compiling for ruby</echo>
+		<!-- Compile the generated parser -->	
+		<copy file="${src}/nl/axizo/EBNF/EBNFMain.java" 
+			tofile="${out}/generated/nl/axizo/EBNF/EBNFMain.java" 
+		/>
+		<javac 
+			srcdir="${out}/generated"
+			destdir="${build}/generated"
+			includes="EBNFruby.java,nl/**"
+			includeantruntime="false"
+		>
+			<classpath>
+				<pathelement location="${dist}/lib/parser.jar"/>
+			</classpath>
+		</javac>
+	</target>
+
+	<target name="runr" depends="compiler" >
+	  <timer name="run">
+		<java 
+				classname="nl.axizo.EBNF.EBNFMain" 
+				dir="${out}"
+				fork="true"
+				failonerror="true"
+		>
+			<arg value="-r"/>
+			<!-- up-dir needed because we start in a subdir -->
+			<arg value="../ebnfruby2.ebnf"/>
+			<classpath>
+				<pathelement location="${dist}/lib/parser.jar"/>
+				<pathelement location="${build}/generated"/>
+			</classpath>
+		</java>
+	  </timer>
+	</target>
+
+	<!-- ************************
+	     * Start Test Suite     *
+	     ************************ -->
+
+	<target name="create_test_suite" depends="compile_test, build" >
+		<echo>Creating test suite</echo>
+		<description>Tests use the generated EBNF parser output</description>
+
+		<java 
+				classname="nl.axizo.EBNF.EBNFMain" 
+				dir="${out}/test"
+				fork="true"
+				failonerror="true"
+		>
+			<!-- Enable following for profiling output -->
+			<!-- jvmarg value="-javaagent:/home/wri/project/lib/jip/profile/profile.jar" / -->
+			<!-- up-dir needed because we start in a subdir -->
+			<arg value="../../test_suite/digits.ebnf"/>
+			<classpath>
+				<pathelement location="${dist}/lib/parser.jar"/>
+				<pathelement location="${build}/generated"/>
+			</classpath>
+		</java>
+	</target>
+		
+	<target name="test_suite" depends="create_test_suite" >
+		<echo>Compiling test suite</echo>
+
+		<!-- Compile the parsers used for testing -->
+		<javac destdir="${build}/test">
+			<src path="${out}/test"/>
+			<classpath>
+				<pathelement location="${dist}/lib/parser.jar"/>
+			</classpath>
+		</javac>
+
+		<!-- Compile the testing classes -->
+		<javac destdir="${build}/test">
+			<src path="${src}"/>
+			<include name="**/*Test.java" />
+			<classpath>
+				<pathelement location="${dist}/lib/parser.jar"/>
+				<pathelement location="${build}/test"/>
+			</classpath>
+		</javac>
+
+		<echo>Running test suite</echo>
+		<junit printsummary="yes" fork="yes" haltonfailure="yes" showoutput="yes">
+			<formatter type="plain"/>
+			<test name="nl.axizo.test.ParserTest"/>
+			<classpath>
+				<pathelement location="${dist}/lib/parser.jar"/>
+				<pathelement location="${build}/test"/>
+			</classpath>
+		</junit>
+	</target>
+
+	<!-- ************************
+	     * End Test Suite     *
+	     ************************ -->
+
+<!--
+	Appointments project
+  -->
+
+	<target name="appt_uptodate">
+		<uptodate property="isUpToDate"
+            srcfile="appointments/appointments.ebnf"
+            targetfile="${out}/generated/Appointments.java"
+		/>
+	</target>
+
+	<target name="appt_parse" depends="appt_uptodate" unless="isUpToDate">
+		<timer name="run">
+
+		<java 
+				classname="nl.axizo.EBNF.EBNFMain" 
+				dir="${out}/generated"
+				fork="true"
+				failonerror="true"
+		>
+			<!-- arg value="-p"/>
+			<arg value="nodes.txt"/ -->
+			<!-- up-dir needed because we start in a subdir -->
+			<arg value="../../appointments/appointments.ebnf"/>
+			<classpath>
+				<pathelement location="${dist}/lib/parser.jar"/>
+				<pathelement location="${build}/generated"/>
+				<path refid="lib.path"/>
+			</classpath>
+		</java>
+	  </timer>
+	</target>
+
+	<target name="appt_compile" depends="appt_parse" >
+		<echo>Compiling for appointments</echo>
+		<!-- Compile the generated parse Class -->
+		<javac 
+			srcdir="${out}/generated"
+			destdir="${build}/generated"
+			includes="Appointments.java"
+			includeantruntime="false"
+		>
+			<classpath>
+				<pathelement location="${dist}/lib/parser.jar"/>
+			</classpath>
+		</javac>
+
+		<!-- Compile the support files -->
+		<javac 
+			srcdir="${src}"
+			destdir="${build}/generated"
+			includes="Appointments.java,nl/**"
+			excludes="nl/axizo/test/**"
+			includeantruntime="false"
+		>
+			<classpath>
+				<pathelement location="${dist}/lib/parser.jar"/>
+				<path refid="lib.path"/>
+			</classpath>
+		</javac>
+	</target>
+
+
+	<target name="appt_test" depends="appt_compile">
+	  <timer name="run">
+		<java 
+				classname="nl.axizo.appointment.AppointmentsMain" 
+				dir="${out}/test"
+				fork="true"
+				failonerror="true"
+		>
+			<!-- up-dir needed because we start in a subdir -->
+			<arg value="../../appointments/test_appt.txt"/>
+			<classpath>
+				<pathelement location="${dist}/lib/parser.jar"/>
+				<pathelement location="${build}/generated"/>
+				<path refid="lib.path"/>
+			</classpath>
+		</java>
+	  </timer>
+	</target>
+
+	<target name="appt_jar" depends="appt_compile" >
+		<jar jarfile="${dist}/lib/appointments.jar" >
+			<fileset dir="${build}/generated"
+            	 includes="nl/axizo/appointment/**, nl/axizo/EBNF/Appointments.class"
+    		/>
+		</jar>
+	</target>
+
+	<target name="appt" depends="appt_test" />
+
+<!--
+	End Appointments project
+  -->
+
+	<target name="clean" >
+	<delete includeemptydirs="true">
+		<fileset dir="${build}">
+			<include name="**/*" />
+		</fileset>
+		<fileset dir="${dist}">
+			<include name="**/*" />
+		</fileset>
+		<fileset dir="${out}" >
+			<include name="**/*" />
+		</fileset>
+	</delete>
+	</target>
+</project>
+

@@ -93,7 +93,9 @@ rule           = rule_modifier? label Err- '=' Err+ statements '.' .
 #The actual language definition
 #
 
-skip languageblock  = 'language' label '{' 
+token package_name = noWS ( label "." )* .
+
+skip languageblock  = 'language' package_name? noWS label skipWS '{' 
 		{ switches | State | action | rule  | native_code } 
 	'}'. 
 

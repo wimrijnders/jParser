@@ -25,9 +25,19 @@ public class EBNFGenerator extends Generator {
 
 		Node root = state.getCurNode();
 
+		String packageName     = root.get("language").get("package_name").getValue();
 		String className       = root.get("language").get("label").getValue();
 		Node   member_patterns = root.get("temp").get("members");
 		Node   init_patterns   = root.get("temp").get("ctor");
+
+
+		if ( packageName != "" ) {
+			// Remove trailing dot
+			packageName = packageName.substring( 0, packageName.length() -1 );
+		} else {
+			// Use default value
+			packageName = "nl.axizo.EBNF";
+		}
 
 		// parameter value is ignored, we derive the filename from the
 		// class name in the parsed data.
@@ -46,7 +56,7 @@ public class EBNFGenerator extends Generator {
 				+ " *\n"
 				+ " * Editing it is a bad idea.\n"
 				+ " */\n"
-				+ "package nl.axizo.EBNF;\n"
+				+ "package " + packageName + ";\n"
 				+ "\n"
 				+ "import nl.axizo.parser.*;\n"
 				+ "import java.util.regex.*;\n"
@@ -429,7 +439,7 @@ public class EBNFGenerator extends Generator {
 	/**
  	 * Detect entry point for the parse and generate code for calling it.
  	 * 
- 	 * @throw ParseException if no entry point found.
+ 	 * @throws ParseException if no entry point found.
  	 */
 	protected String generateEntryPoint( Node root ) throws ParseException {
 

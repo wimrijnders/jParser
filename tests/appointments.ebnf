@@ -1,4 +1,9 @@
-language Appointments {
+#
+# TODO: Make test with this class
+#       The only significant part is the package definition in the
+#       language name.
+#
+language com.angelspeech.SAGE_INTERGY_EHR_TXT.Appointments {
 	# Global definitions
 	noWS
 	decs = [0-9]+.

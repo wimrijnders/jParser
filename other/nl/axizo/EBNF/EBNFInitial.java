@@ -854,6 +854,7 @@ public class EBNFInitial extends BasicParser {
 		String nodesFile = "nodes.txt";
 		boolean parseOnly = false;
 		String inFile;
+		boolean outputRuby = false;
 
 		// Handle parameters, if any:
 		//
@@ -866,6 +867,10 @@ public class EBNFInitial extends BasicParser {
 				parseOnly = true;
 				nodesFile = argv[curarg + 1];
 				curarg += 2;
+			} else if ( "-r".equals(argv[curarg]) ) {
+				info( "Outputting for ruby.");
+				outputRuby = true;
+				curarg += 1;
 			} else {
 				error ("Unknown option '" + argv[curarg] + "'" );
 				curarg += 1;
@@ -891,9 +896,19 @@ public class EBNFInitial extends BasicParser {
 			info( "Errors occured during parsing; skipping translation and generation.");
 		} else {
 			try {
-				Validator  validator  = new EBNFValidator();
-				Translator translator = new EBNFTranslator();
-				Generator  generator  = new EBNFGenerator();
+				Validator  validator;
+				Translator translator;
+				Generator  generator;
+
+				if ( outputRuby ) {
+					validator  = new EBNFValidatorRuby();
+					translator = new EBNFTranslatorRuby();
+					generator  = new EBNFGeneratorRuby();
+				} else {
+					validator  = new EBNFValidator();
+					translator = new EBNFTranslator();
+					generator  = new EBNFGenerator();
+				}	
 
 				// Validate parse tree
 				validator.validate( state );

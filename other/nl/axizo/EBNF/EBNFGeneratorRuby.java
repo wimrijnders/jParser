@@ -328,7 +328,7 @@ public class EBNFGeneratorRuby extends EBNFGenerator {
 	/**
  	 * Detect entry point for the parse and generate code for calling it.
  	 * 
- 	 * @throw ParseException if no entry point found.
+ 	 * @throws ParseException if no entry point found.
  	 */
 	protected String generateEntryPoint( Node root ) throws ParseException {
 

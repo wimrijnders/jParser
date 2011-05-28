@@ -269,7 +269,7 @@ public class Node {
  	 * Search nodes depth-first and return all nodes
  	 * with the value equal to the given parameter.
  	 *
- 	 * @param label key to search for
+ 	 * @param value Value to search for
  	 */
 	public Vector findNodesByValue( String value ) {
 		Vector ret = new Vector();
