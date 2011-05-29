@@ -18,6 +18,8 @@
 	<property name="lib" location="lib"/>
 	<property name="log4j" value="log4j-1.2.16.jar" />
 
+	<property name="testfile" value="${grammar}/ebnf.ebnf"/>
+
 	<path id="lib.path">
 		<fileset dir="lib">
        		<include name="${log4j}"/>
@@ -145,7 +147,7 @@
 
 	<target name="test" depends="compile_test" >
 		<!-- And run the compiled result -->
-		<echo>Running test</echo>
+		<echo>Running test with input ${testfile}</echo>
 	  <timer name="test">
 		<java 
 				classname="nl.axizo.EBNF.EBNFMain" 
@@ -156,9 +158,9 @@
 			<!-- Enable following for profiling output -->
 			<!-- jvmarg value="-javaagent:/home/wri/project/lib/jip/profile/profile.jar" / -->
 			<!-- up-dir needed because we start in a subdir -->
-			<arg value="-p"/>
-			<arg value="nodes_test.txt"/>
-			<arg value="${grammar}/ebnf.ebnf"/>
+			<!-- arg value="-p"/>
+			<arg value="nodes_test.txt"/ -->
+			<arg value="${testfile}"/>
 			<classpath>
 				<path refid="lib.path"/>
 				<pathelement location="${build}/lib/parser.jar"/>

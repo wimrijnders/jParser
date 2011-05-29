@@ -6,6 +6,7 @@ package nl.axizo.EBNF;
 
 import nl.axizo.parser.*;
 import java.io.IOException;
+import java.io.File;
 import java.util.Vector;
 import java.util.Map;
 import java.util.Hashtable;
@@ -131,7 +132,29 @@ public class EBNFGenerator extends Generator {
 
 		// Save what we got
 		try {
-			Util.saveFile( outfile, output );
+			String packageName2 = root.get("language").get("package_name").getValue();
+			if ( packageName2 != "" ) {
+				// Package specified. Create the output path
+
+				// Remove trailing dot
+				packageName2 = packageName2.substring( 0, packageName.length() -1 );
+				String path = packageName2.replace( '.', '/' );
+
+				boolean success = (new File(path)).mkdirs();
+
+				if ( !success ) {
+					Util.warning( "Error during creation of path '" + path + 
+						"', continuing anyway.");
+				} else {
+					Util.info( "Creating path '" + path + "' succeeded." );
+				}
+
+				// Save the file
+				Util.saveFile( path + "/" + outfile, output );
+			} else {
+				// No path specified. Do a regular save
+				Util.saveFile( outfile, output );
+			}
 		} catch( IOException e) {
 			String errMsg = "error while saving '" + outfile + "': " + e.toString();
 			Util.error( errMsg );
