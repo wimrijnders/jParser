@@ -84,8 +84,11 @@ public class EBNFGenerator extends Generator {
 		}
 
 		output += "\t}\n\n";
-		output += "\n\n\t" + "public " + className + "(String filename) {\n"
-				+ "\t\tthis(filename, true);\n\n";
+		output += "\n\t" + "public " + className + "(byte [] buffer, boolean loadFromFile) {\n"
+				+ "\t\tthis( new String( buffer), loadFromFile);\n";
+		output += "\t}\n\n";
+		output += "\n\t" + "public " + className + "(String filename) {\n"
+				+ "\t\tthis(filename, true);\n";
 		output += "\t}\n\n";
 
 		//
@@ -137,7 +140,8 @@ public class EBNFGenerator extends Generator {
 				// Package specified. Create the output path
 
 				// Remove trailing dot
-				packageName2 = packageName2.substring( 0, packageName.length() -1 );
+				packageName2 = packageName2.substring( 0, packageName.length() );
+				Util.info( "packageName2: " + packageName2 );
 				String path = packageName2.replace( '.', '/' );
 
 				boolean success = (new File(path)).mkdirs();
