@@ -29,6 +29,7 @@ public class Util {
 	private static int     traceLevel     = INFO;
 	private static boolean showDoneOutput    = false;
 
+	// TODO: Check if following gives reentrancy problems
 	private static Map declaredMethods = new Hashtable(); 
 
 	//////////////////////////////////////////////
@@ -46,6 +47,13 @@ public class Util {
 		}
 	}
 
+
+	// Following should fix reentrancy if consecutive calls made on single instance
+	// TODO: check if problems with multiple parallel calls.
+	public static void init() {
+		declaredMethods = new Hashtable(); 
+	}
+	
 	public static void trace  (int level, String str) { out( level  , str); }
 	public static void trace  (String str) { /* out( TRACE  , str); */ logger.debug( str); }
 	public static void info   (String str) { /* out( INFO   , str); */ logger.info(str); }
@@ -133,6 +141,8 @@ public class Util {
 			//NoSuchMethodException, 
 			//IllegalAccessException 
 	{
+		//info("caller: " + caller );
+
 		// TODO: Handle NoSuchMethodException and IllegalAccessException properly
 
 		State state = oldState.copy( method );
@@ -204,4 +214,17 @@ public class Util {
 		fw.write(output);
 		fw.close();
 	}
+
+
+	/**
+	 * Print a stacktrace to String.
+	 */
+	public static String stacktraceToString(Throwable throwable)
+   	{
+    	Writer result = new StringWriter();
+    	PrintWriter printWriter = new PrintWriter(result);
+
+    	throwable.printStackTrace(printWriter);
+    	return result.toString();
+   	}
 }

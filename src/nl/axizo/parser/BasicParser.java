@@ -258,24 +258,32 @@ public class BasicParser {
 	}
 
 	/**
- 	 * Show the final status of the parsing on standard output.
+ 	 * Get the final status of the parsing.
  	 *
- 	 * Errors are shown in the error output in this step.
+ 	 * Returns string with final status info.
+	 * Status info is also sent to the logger.
  	 */
-	public void showFinalResult( State state ) {
+	public String showFinalResult( State state ) {
+		String out = "";
 		try {
 			if ( eol(state.getCurpos() ) ) {
-				info("Parsing completed succesfully.");
+				out = "Parsing completed succesfully.";
+				info( out );
 			} else { 
 				if ( state.getErrorPos() != -1 ) {
-					error( "Error in label '" + state.getErrorMethod() + "' at: " + 
-						curLine( state.getErrorPos() ) );
+					out = "Error in label '" + state.getErrorMethod() + "' at: " + 
+						curLine( state.getErrorPos() );
+				} else {
+					out = "Parsing failed";
 				}
+				error ( out );
 			}
 			trace( "curpos: " + curLine( state.getCurpos() ) );
 		} catch ( ParseException e ) {
-			error( "Exception: " + e.toString() );
+			out =  "Exception: " + e.toString();
+			error( out );
 		}
+		return out;
 	}
 
 
@@ -285,7 +293,10 @@ public class BasicParser {
  	 * @return true if and end of buffer, false otherwise.
  	 */
 	public boolean eol(int curpos) throws ParseException {
-		if ( curpos > buffer.length() ) { throw new ParseException(); }
+		if ( curpos > buffer.length() ) { 
+			throw new ParseException( "Parser passed end of input buffer. Curpos:" + 
+				curpos + "; buffer length: " + buffer.length() );
+		}
 
 		return curpos == buffer.length();
 	}
