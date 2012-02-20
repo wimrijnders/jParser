@@ -1,0 +1,312 @@
+<html>
+<head>
+	<style>
+		body {
+			font-family: sans-serif;
+			margin-left: 2em;
+		}
+
+		.code, pre {
+			font-family: monospace;
+			background-color: #eee;
+			border: thin solid black;
+			padding: 0.5em 1em 0.5em 1em;
+			margin: 1em 1em 1em 3em;
+			width: 52em;
+		}
+
+		.code:before {
+			content: 'C:> ';
+		}
+
+		#quick_start_list li {
+			margin-bottom: 3em;
+		}
+
+		#zeromore li, #contents li {
+			margin-bottom: 0em;
+		}
+
+		p {
+			width: 45em;
+		}
+
+		li {
+			margin-bottom: 1em;
+		}
+
+		h2 {
+			margin-top: 3em;
+			padding-top: 1.5em;
+			border-top: thin solid black;
+		}
+
+		h3 {
+			margin-top: 3em;
+		}
+
+		.highlight p {
+			border: 3px solid black;
+			width: 40em;
+			margin: 2em 1em 2em 6em;
+			padding: 1em 2em 1em 2em;
+			font-size: 1.1em;
+		}
+
+
+		dl {
+			padding-bottom: 4em;
+		}
+
+		dt {
+			clear: left;
+			font-weight: bold;
+			font-family: monospace;
+			float: left;
+			width: 8em; 
+			font-size: 1.2em;
+		}
+		dd { 
+			width: 60em; 
+			margin: 0 0 1.5em 0;
+			float: left;
+		}
+		p.clear { clear: both; }
+
+		#postfixes {
+			margin-left: 3em;
+		}
+
+		#postfixes dt { 
+			width: 4em; 
+		}
+
+		#postfixes dd { 
+			width: 60em; 
+			margin: 0 0 0.2em 0;
+			float: left;
+		}
+
+		code {
+			font-weight: bold;
+			font-size: 1.1em;
+		}
+	</style>
+
+
+	<title>jParser EBNF Syntax</title>
+</head>
+<body>
+
+<h1>jParser EBNF Syntax</h2>
+
+
+<h3><a name="syntax_grammar">Syntax of the grammar file</a></h3>
+
+A grammar is encapsulated in the following block:
+
+<pre>
+language package.path.to.Parser {
+	...
+}</pre>
+
+<p>
+Where <code>Parser</code> is the name of the resulting java file and <code>package.path.to</code> is the package in which the class resides. The package-part is optional for the parser, but necessary for the parser project.
+</p><p>
+A statement has the following layout:
+</p>
+
+<pre>
+&lt;modifiers&gt; name = &lt;items&gt;.
+</pre>
+
+<p>Where:</p>
+
+<ul><li>
+   modifiers are optional keywords which give instructions to the parser generator as to how to handle this statement.
+</li><li>
+   items is a definition of the text pattern which matches some input.
+</li></ul>
+
+
+<div class='highlight'>
+<p>
+	A brief explanation of a parser is a program which associates labels to parts of a text which corresponds to given patterns.
+</p>
+</div>
+
+<p>Comments are preceded by <code>'#'</code> and go till the end of the line.<p>
+
+
+<h3>Items</h3>
+
+<dl>
+<dt>a b</dt>
+<dd>Concatenation. Item a must follow item b.</dd>
+
+<dt>a | b</dt>
+<dd>  Alternative. Either a or b will match the input.<br>
+       Please note that the |-command will match with the nearest item. This
+       is different from most languages. For example:
+
+<pre>a b c | d e | f</pre>
+
+       Will match as:
+
+<pre>a b ( c | d ) ( e | f )</pre>
+
+       You will need to brace explicitly to indicate your intention. eg:
+
+<pre>( a b c ) | ( d e ) | ( f )</pre>
+</dd>
+
+<dt>[abc]</dt>
+<dd>Character class. The parser will match any character between these 
+       braces to the next incoming character.<br> The given example will
+       match charactes 'a' 'b' and 'c', and nothing else.
+
+<p>
+       Special characters are denoted by a preceding backslash, eg:
+<p>
+
+<pre>\r \n \t   - respectively carriage return, line feed, tab</pre>
+
+<p>
+       A character class can include ranges, eg: <code>[a-zA-Z0-9]</code>.
+       Special class <code>[\all]</code> matches everything.
+       <code>[\all]</code> can be expanded with an exclusion set, for example:
+</p>
+
+          <pre>[\all~\r\n]  - match all characters EXCEPT carriage returns and line feeds.</pre>
+
+</dd>
+<dt>"abc"</dt>
+<dd>String. This item will be matched verbatim with the input. A match will be
+       stored in the parse output.
+</dd>
+
+<dt>'abc'</dt>
+<dd>As previous, but the match will NOT be stored in the parse output.
+</dd>
+
+<dt>(...)</dt>
+<dd>Group items. All items between the braces are grouped together. eg:
+
+<pre>( a b c )</pre>
+</dd>
+
+<dt>{...}</dt>
+<dd>Group items within and repeat zero or more items.
+
+    <p>Thus <code>{ [a] }</code> will match
+		(Assuming whitespace parsing is on):
+	</p>
+
+	<ul id="zeromore"><li>
+           &lt;nothing&gt;
+	</li><li>
+           a
+	</li><li>
+           a a
+	</li><li>
+           aa   a a 
+	</li><li>
+           aaaaaaa     aaaaa aaaaa aaaa 
+	</li><li>
+           etc.
+	</li></ul>
+
+
+<dt>!a</dt>
+<dd>Not-operator. Next item in input must NOT correspond with item a.
+       This is a test only, the input will be retained for the next item.
+       The not-operator can not be combined with the postfix-operators as
+       described below.
+</dd>
+
+</dl>
+<p class='clear'>
+In addition, the following postfixes can appear behind (almost) every statement:
+<p>
+
+<dl id='postfixes'>
+<dt>?</dt>
+<dd>Repeat previous item zero or one times</dd>
+
+<dt>*</dt>
+<dd>Repeat previous item zero or more times</dd>
+
+<dt>+</dt>
+<dd>Repeat previous item one or more times</dd>
+
+</dl>
+<p class='clear'></p>
+
+
+<h4>Modifiers</h4>
+
+<dl>
+<dt>noWS, skipWS</dt>
+<dd>Enable/disable whitespace handling.
+
+      <p>Whitespace is defined by statement with label 'WS'. If you do not
+      include this, the following default definition will be used:</p>
+
+        <pre>WS = [ \r\t\n]+.</pre>
+
+      <p>These modifiers can appear between statements. After a noWS, all statements
+      are assumed to be parsed without whitespace in between. After a skipWS, 
+      whitespace is assumed to be between every item.</p>
+        
+	  <p>These modifiers can also appear within a statement. The working is the same;
+      from the point noWS appears, no more whitespace is parsed until skipWS
+      is encountered. These settings are for within the statement only; they
+      are reset when the statement has been handled.</p>
+</dd>
+</dl>
+<p class='clear'></p>
+
+
+<h4>Statement prefixes</h4>
+
+<p>Statement prefixes are used to tell the parser how to handle a given parse
+result in the output. They are optional and not necessary for a succesful
+parse.</p>
+
+<p>The following are used as prefixes for statements:</p>
+
+<dl>
+<dt>entry</dt>
+<dd>Okay, so this prefix IS necessary. Indicates which statement will be
+        handled as first statement upon parsing. There must be exactly one
+        entry statement defined in a grammar.
+</dd>
+
+<dt>ignore</dt>
+<dd>Parse, but do not add this statement to the parsing output. The result
+        of this statement is ignored.
+</dd>
+
+<dt>token</dt>
+<dd>The result of a statement usually contains structure. The statements
+        called by this statement are retained as separate child-entities.<br>
+        The prefix <code>token</code> reduces this structure to a flat string value. The
+        contents are retained, but the child-labels are discarded.
+</dd>
+
+<dt>skip</dt>
+<dd>Parse normally and retain structure. Remove current parse result,
+        but retain all children. Thus, the label of the current statement is
+        discarded, but the labels of the child-statements are retained in the 
+        output.
+</dd>
+</dl>
+<p class='clear'></p>
+
+
+<h3>Notes</h3>
+<div class='highlight'><p>Please avoid java keywords as names for statements. </p></div>
+
+
+</body>
+</html>

@@ -5,7 +5,7 @@ This project contains a light-weight recursive-descent parser written in java. I
 
 Grammars are defined using an EBNF dialect. Parsed input is converted into an internal tree-structure, which can be traversed and manipulated further to create a desired output. 
 
-In due time, I will slap a license on this.
+All source code is licensed under the Apache 2.0 License.
 
 Feel free to contact me about this project through GitHub.
 
