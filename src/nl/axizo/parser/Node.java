@@ -179,8 +179,13 @@ public class Node {
 		String tab = Util.makeTab( tabs );
 		String showVal = value;
 
-		if ( showFirstTwoLines ) {
-			showVal = truncTwoLines( showVal );
+		if ( showVal == null ) {
+			Util.warning( "value of node '" + key + "' is null.");
+			showVal = "<<NULL>>";
+		} else {
+			if ( showFirstTwoLines ) {
+				showVal = truncTwoLines( showVal );
+			}
 		}
 
 		String ret = tab + key + ": " + showVal + "\n";

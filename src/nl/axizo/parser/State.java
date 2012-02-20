@@ -142,11 +142,20 @@ public class State {
  	 */
 	public String getOutput(boolean showFirstTwoLines) {
 		State state = this;
+		String retval = "";
 
 		if ( hasErrors() && errstate != null ) {
 			state = errstate;
 		}
 
-		return state.getCurNode().show( showFirstTwoLines );
+		try { 
+			retval = state.getCurNode().show( showFirstTwoLines );
+		} catch ( Exception e ) {
+			String tmp = "Creating node output failed: " + e.toString();
+			Util.error( tmp );
+			retval = tmp;
+		}
+
+		return retval;
 	}
 }
