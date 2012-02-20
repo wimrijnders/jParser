@@ -155,11 +155,11 @@
 				fork="true"
 				failonerror="true"
 		>
-			<!-- Enable following for profiling output -->
-			<!-- jvmarg value="-javaagent:/home/wri/project/lib/jip/profile/profile.jar" / -->
+			<!-- Enable following for profiling output - this is the jip profiler -->
+			<jvmarg value="-javaagent:${lib}/profile.jar" />
 			<!-- up-dir needed because we start in a subdir -->
-			<!-- arg value="-p"/>
-			<arg value="nodes_test.txt"/ -->
+			<arg value="-p"/>
+			<arg value="nodes_test.txt"/>
 			<arg value="${testfile}"/>
 			<classpath>
 				<path refid="lib.path"/>
