@@ -22,7 +22,7 @@ import java.util.Vector;
 public class Node {
 	String key;
 	String value;
-	Vector children = new Vector();
+	Vector<Node> children = new Vector<Node>();
 	Node   parent;
 
 	Node() {
@@ -82,7 +82,7 @@ public class Node {
 	 */ 
 	public void  addChildren( Node n) {
 
-		Vector children = n.children;
+		Vector<Node> children = n.children;
 		n.removeChildren();
 
 		for( int i = 0; i < children.size(); ++i ) {
@@ -94,7 +94,7 @@ public class Node {
 	}
 
 	public void removeChildren() {
-		children = new Vector();
+		children = new Vector<Node>();
 	}
 
 
@@ -117,7 +117,7 @@ public class Node {
  	 */
 	public Node get(String key ) {
 		for ( int i =0; i < children.size(); ++i ) {
-			Node n = (Node) children.get(i);
+			Node n = children.get(i);
 
 			if ( n.key.equals( key ) ) {
 				return n;
@@ -136,7 +136,7 @@ public class Node {
  	 * Get child Node by index into list.
  	 */
 	public Node get(int n ) {
-		return (Node) children.get(n);
+		return children.get(n);
 	}
 
 
@@ -191,7 +191,7 @@ public class Node {
 		String ret = tab + key + ": " + showVal + "\n";
 
 		for ( int i =0; i < children.size(); ++i ) {
-			Node n = (Node) children.get(i);
+			Node n = children.get(i);
 			ret += n.show( tabs + 1, showFirstTwoLines );
 		}
 
@@ -252,11 +252,11 @@ public class Node {
 		String str = value;
 
 		for ( int i =0; i < children.size(); ++i ) {
-			Node n = (Node) children.get(i);
+			Node n = children.get(i);
 			n.collect();
 			str += n.value;
 		}
-		children = new Vector();
+		children = new Vector<Node>();
 
 		value = str;
 	}
@@ -268,11 +268,11 @@ public class Node {
  	 *
  	 * @param label key to search for
  	 */
-	public Vector findNodes( String label ) {
-		Vector ret = new Vector();
+	public Vector<Node> findNodes( String label ) {
+		Vector<Node> ret = new Vector<Node>();
 
 		for ( int i =0; i < children.size(); ++i ) {
-			Node n = (Node) children.get(i);
+			Node n = children.get(i);
 			ret.addAll( n.findNodes(label) );
 		}
 
@@ -289,11 +289,11 @@ public class Node {
  	 *
  	 * @param value Value to search for
  	 */
-	public Vector findNodesByValue( String value ) {
-		Vector ret = new Vector();
+	public Vector<Node> findNodesByValue( String value ) {
+		Vector<Node> ret = new Vector<Node>();
 
 		for ( int i =0; i < children.size(); ++i ) {
-			Node n = (Node) children.get(i);
+			Node n = children.get(i);
 			ret.addAll( n.findNodesByValue(value) );
 		}
 

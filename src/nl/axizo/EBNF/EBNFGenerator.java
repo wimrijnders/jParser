@@ -337,6 +337,13 @@ public class EBNFGenerator extends Generator {
 		return out;
 	}
 
+	private static boolean modifierPresent( Node rule, String name ) {
+		Vector<Node> modifiers =rule.get("rule_modifier").findNodes("string");
+		for ( Node n: modifiers ) {
+			if ( name.equals( n.getValue() ) ) return true;
+		}
+		return false;
+	}
 
 	/**
  	 * Determine is passed rule node has a token modifier.
@@ -345,7 +352,7 @@ public class EBNFGenerator extends Generator {
  	 * @return true if token modifier present, false otherwise.
  	 */
 	protected static boolean isTokenRule( Node rule ) {
-		return "token".equals( rule.get("rule_modifier").get("string").getValue() );
+		return modifierPresent( rule, "token" );
 	}
 
 
@@ -359,7 +366,7 @@ public class EBNFGenerator extends Generator {
  	 * @return true if skip modifier present, false otherwise.
  	 */
 	protected static boolean skipThisRule( Node rule ) {
-		return "skip".equals( rule.get("rule_modifier").get("string").getValue() );
+		return modifierPresent( rule, "skip" );
 	}
 
 
@@ -375,7 +382,11 @@ public class EBNFGenerator extends Generator {
  	 * @return true if ignore modifier present, false otherwise.
  	 */
 	protected static boolean ignoreThisRule( Node rule ) {
-		return "ignore".equals( rule.get("rule_modifier").get("string").getValue() );
+		return modifierPresent( rule, "ignore" );
+	}
+
+	protected static boolean raiseThisRule( Node rule ) {
+		return modifierPresent( rule, "raise" );
 	}
 
 
@@ -484,11 +495,11 @@ public class EBNFGenerator extends Generator {
 	protected String generateEntryPoint( Node root ) throws ParseException {
 
 		// Find the entry  point
-		Vector rule_modifiers = root.findNodes( "rule_modifier" );
+		Vector<Node> rule_modifiers = root.findNodes( "rule_modifier" );
 		Node entry_node = null;
 		int	 entry_count = 0;
 		for( int i = 0;  i < rule_modifiers.size(); ++i ) {
-			Node mod = (Node) rule_modifiers.get(i);
+			Node mod = rule_modifiers.get(i);
 
 			if ( "entry".equals( mod.get("string").getValue() ) ) {
 				entry_node = mod.getParent();

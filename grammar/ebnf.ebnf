@@ -101,7 +101,8 @@ statement      =
 alternative   = statement  ( '|'  statement)*.
 statements       = (switches* alternative)+.
 
-rule_modifier  = 'entry' | 'ignore' | 'token' | 'skip'.
+skip modifier_value  = 'entry' | 'ignore' | 'token' | 'skip' | 'raise'.
+rule_modifier = modifier_value+. 
 rule           = rule_modifier? label Err- '=' Err+ statements '.' .
 
 #

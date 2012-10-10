@@ -19,10 +19,15 @@ package nl.axizo.parser;
 
 public class ParseException extends Exception {
 
+	private String method = null;
+
 	public ParseException() {
 		super( );
 	}
 	public ParseException(String msg ) {
 		super( msg );
 	}
+
+	public void   setMethod(String val ) { method = val; }
+	public String getMethod() { return method; }
 }

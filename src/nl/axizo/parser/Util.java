@@ -287,7 +287,11 @@ public class Util {
 
 		if ( !ret ) {
 			oldState.setError( state, method );
-			if ( doThrow ) throw new ParseException();
+			if ( doThrow ) { 
+				ParseException pe = new ParseException();
+				pe.setMethod( method );
+				throw pe;
+			}
 		}
 		return ret;
 	}

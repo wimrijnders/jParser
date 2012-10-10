@@ -153,11 +153,12 @@ public class BasicParser {
 	 * @param doThrow  If true, throw a ParseException if parsing fails. Default is false.
 	 * @param ignore   If true, do not save parsed content to parse tree. Default is false.
 	 */
-	protected boolean s( String method, State oldState, boolean doThrow, boolean ignore ) throws 
-			ParseException//, 
-			//NoSuchMethodException, 
-			//IllegalAccessException 
-	{
+	protected boolean s(
+		String method,
+		State oldState,
+		boolean doThrow,
+		boolean ignore
+	) throws ParseException {
 		return Util.s( this, method, oldState, doThrow, ignore );
 	}
 
