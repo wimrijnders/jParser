@@ -84,6 +84,7 @@ public class EBNFMain {
 				validator.validate( state );
 
 				// Do node translations
+				Util.info("Doing translate.");
 				translator.translate( state );
 				parser.saveNodes( state, "after_translate.txt" );
 	

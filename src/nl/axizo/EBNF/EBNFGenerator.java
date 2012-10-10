@@ -251,9 +251,9 @@ public class EBNFGenerator extends Generator {
 				}
 
 				if ( mustReturn ) {
-					out += "\t\tif( " + value + ", false" + throwParams + " ) ) return false;\n";
+					out += "\t\tif( " + value + throwParams + " ) ) return false;\n";
 				} else {
-					out += "\t\t" + value + ", false" + throwParams + " );\n";
+					out += "\t\t" + value + throwParams + " );\n";
 				}
 			}
 		} else {

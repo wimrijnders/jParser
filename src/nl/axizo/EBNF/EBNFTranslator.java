@@ -19,6 +19,8 @@ package nl.axizo.EBNF;
 
 import nl.axizo.parser.*;
 import java.util.Vector;
+import java.util.Map;
+import java.util.HashMap;
 import java.util.regex.*;
 
 
@@ -37,6 +39,8 @@ import java.util.regex.*;
  * 		- the generation step is simplified.
  */
 public class EBNFTranslator extends Translator {
+	private Node root = null;
+	private Map<String,Boolean> raised_rules;
 
 	protected static String replace(
 	    String aInput, String aOldPattern, String aNewPattern
@@ -112,6 +116,7 @@ public class EBNFTranslator extends Translator {
  	 * Perform translation steps on charset nodes.
 	 */
 	protected void translateCharsets( State state ) {
+		
 
 		// Translate special characters in charset ranges to the java regexp equivalents
 		Vector res =  state.getCurNode().findNodes( "range" );
@@ -311,16 +316,56 @@ public class EBNFTranslator extends Translator {
 		return "do; while (";
 	}
 
+	private boolean isRaisedRule( String label ) {
+		return raised_rules.containsKey( label );
+/*
+		for( Node n: root.findNodes( "rule" ) ) {
+			if ( label.equals( n.get( "label" ).getValue() ) ) {
+				Vector<Node> v = n.get( "rule_modifier").findNodesByValue( "raise" );
+				return v.size() > 0;
+			}
+		}
+
+		return false;
+*/
+	}
+
+
+	private Map<String, Boolean> getRaisedRules() {
+		Util.info("Finding raised rules.");
+		Map<String, Boolean> ret = new HashMap<String, Boolean>();
+
+		for( Node n: root.findNodes( "rule" ) ) {
+			Vector<Node> v = n.get( "rule_modifier").findNodesByValue( "raise" );
+			if ( v.size() > 0 ) {
+				ret.put( n.get("label").getValue(), true );
+			}
+		}
+
+		Util.info("Found " + ret.size() + " raised rules.");
+		return ret;
+	}
+
 
 	protected String makeCall(Node child) {
+		String key   = child.getKey();
+		String value = child.getValue();
+
 		String call = null;
-		if ( "literal".equals( child.getKey() ) 
-			|| "literal_symbol".equals( child.getKey() ) ) {
-			call = "parseString( \"" + child.getValue() + "\", state"; 
-		} else if ( "charset".equals( child.getKey() ) ) {
-			call = "parseCharset( " + child.getValue() + ", state"; 
-		} else if ( "label".equals( child.getKey() ) ) {
-			call = "s( \"" + child.getValue() + "\", state"; 
+		if ( "literal".equals( key ) 
+			|| "literal_symbol".equals( key ) ) {
+			call = "parseString( \"" + value + "\", state, false"; 
+		} else if ( "charset".equals( key ) ) {
+			call = "parseCharset( " + value + ", state, false"; 
+		} else if ( "label".equals( key ) ) {
+			String raise = "false";
+
+			if ( isRaisedRule( value ) ) {
+				Util.info( "Detected raised rule '" + value + "' during translate");
+				raise = "true";
+			}
+
+			call = "s( \"" + value + "\", state, " + raise; 
 		}
 
 		return call;
@@ -461,6 +506,9 @@ public class EBNFTranslator extends Translator {
 	 * </pre></p>
 	 */
 	public void translate( State state ) throws ParseException {
+		root = state.getCurNode();
+		raised_rules = getRaisedRules(); 
+
 		Vector res;
 
 		setWSFlags(state);
