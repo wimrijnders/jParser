@@ -216,6 +216,8 @@ public class EBNFGenerator extends Generator {
 				// If parameters were passed, use those instead
 				Node param1 = n.get("call").get("param1");
 				Node param2 = n.get("call").get("param2");
+				Node raise = n.get("call").get("raise");
+
 				boolean isNot = !n.get("call").get("not").isNull();
 
 				if ( isNot ) {
@@ -226,6 +228,9 @@ public class EBNFGenerator extends Generator {
 				if ( !param1.isNull() ) {
 					mustReturn = Boolean.getBoolean( param1.getValue() );
 				}
+
+				if ( !raise.isNull() ) throwParams += "," + raise.getValue();
+				else throwParams += ", false";
 
 				//Param2 gets appended
 				if ( !param2.isNull() ) throwParams += "," + param2.getValue();

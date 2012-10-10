@@ -265,12 +265,12 @@ public class Util {
 		} catch ( InvocationTargetException e ) {
 			if ( e.getCause() instanceof ParseException ) {
 				if ( doThrow ) {
-					info("method: " + method  + "threw ParseException.");
+					//info("method: " + method  + "threw ParseException.");
 					oldState.setError( state, method );
-					throw (ParseException) e.getCause();
-					//ParseException pe = new ParseException();
-					//pe.setMethod( method );
-					//throw pe;
+					//throw (ParseException) e.getCause();
+					ParseException pe = new ParseException();
+					pe.setMethod( method );
+					throw pe;
 				}
 			} else {
 				error( 
@@ -287,7 +287,7 @@ public class Util {
 		if ( !ret ) {
 			oldState.setError( state, method );
 			if ( doThrow ) { 
-				info("Error in method: " + method  + "throwing ParseException.");
+				//info("Error in method: " + method  + "throwing ParseException.");
 				ParseException pe = new ParseException();
 				pe.setMethod( method );
 				throw pe;

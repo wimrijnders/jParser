@@ -354,18 +354,11 @@ public class EBNFTranslator extends Translator {
 		String call = null;
 		if ( "literal".equals( key ) 
 			|| "literal_symbol".equals( key ) ) {
-			call = "parseString( \"" + value + "\", state, false"; 
+			call = "parseString( \"" + value + "\", state"; 
 		} else if ( "charset".equals( key ) ) {
-			call = "parseCharset( " + value + ", state, false"; 
+			call = "parseCharset( " + value + ", state"; 
 		} else if ( "label".equals( key ) ) {
-			String raise = "false";
-
-			if ( isRaisedRule( value ) ) {
-				Util.info( "Detected raised rule '" + value + "' during translate");
-				raise = "true";
-			}
-
-			call = "s( \"" + value + "\", state, " + raise; 
+			call = "s( \"" + value + "\", state"; 
 		}
 
 		return call;
@@ -416,9 +409,11 @@ public class EBNFTranslator extends Translator {
 			Node child = n.get( first_child );
 
 			String param1 = null;
+			String raise  = null;
 			String param2 = null;
 			String call = makeCall(child);
 			if ( call == null) continue;
+
 
 			// TODO: add whitespace handling for following blocks
 			if ( !"".equals(repeat) ) {
@@ -446,6 +441,13 @@ public class EBNFTranslator extends Translator {
 			}
 
 
+			// Raise rule modifier overrides any previous value
+			String value = child.getValue();
+			if ( isRaisedRule( value ) ) {
+				// Throw
+				raise = "true";
+			}
+
 			// For a literal symbol, no output should be generated
 			// after parsing. Following code takes care of that.
  			//I take it back - they SHOULD be present in output 
@@ -462,6 +464,7 @@ public class EBNFTranslator extends Translator {
 			n.removeChildren();
 			if ( param1 != null ) n.addChild( "param1", param1 );
 			if ( param2 != null ) n.addChild( "param2", param2 );
+			if ( raise  != null ) n.addChild( "raise" , raise );
 			if ( isNot ) n.addChild( "not", "" );
 		}
 	}
