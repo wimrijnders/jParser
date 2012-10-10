@@ -29,6 +29,8 @@ import java.lang.reflect.Method;
 import java.util.Hashtable;
 import java.util.Map;
 import org.apache.log4j.Logger;
+import org.apache.log4j.Priority;
+import org.apache.log4j.Level;
 
 
 public class Util {
@@ -54,11 +56,23 @@ public class Util {
 		traceLevel     = val; 
 	}
 
-	private static void out(int traceLevel, String str) {
+
+	private static void out(int traceLevel, String str, boolean always_display) {
+		if ( always_display ) {
+			System.out.println( str );
+			return;
+		}
+
 		// Util. qualifier needed in following
 		if ( traceLevel >= Util.traceLevel ) {
-			System.out.println( str );	
+			if ( check_last_trace( traceLevel, str ) ) {
+				System.out.println( str );
+			}
 		}
+	}
+
+	private static void out(int traceLevel, String str ) {
+		out(traceLevel, str, false);
 	}
 
 
@@ -67,12 +81,94 @@ public class Util {
 	public static void init() {
 		declaredMethods = new Hashtable(); 
 	}
-	
+
+	private static String last_trace = null;
+	private static int trace_count = -1;
+
+
+	/**
+	 * Get the current debug level.
+	 *
+	 * If current Logger doesn't have a level defined, take it 
+	 * from the hierarchy root.
+	 *
+	 * Source: http://markmail.org/message/ko5f3qnewfcsl37b#query:+page:1+mid:xpnbfye4y7lnuhnl+state:results
+	 *
+	 * @return Current debug level
+	 *
+	 * TODO
+	 * ====
+	 *
+	 * - Perhaps walk the Category hierarchy to determine
+	 *   correct level.
+	 */
+	public static Level getDebugLevel () {
+		Level level = logger.getLevel();
+
+		if (level == null) {
+			Logger root = logger.getRootLogger();
+
+			return root.getLevel();
+		}
+
+		return level;
+	}
+
+	/**
+	 * Version using log4j statusses.
+	 *
+	 * @return true if given str should be displayed.
+	 */
+	private static boolean check_last_trace( Priority level, String str ) {
+		if ( str.equals( last_trace ) ) {
+			trace_count += 1;
+			return false;
+		} else {
+			if ( trace_count > 0 ) {
+				logger.log( level, "Last message repeated " + trace_count + " times.");
+			}
+			last_trace = str;
+			trace_count = 0;
+			return true;
+		}
+	}
+
+
+	/**
+	 * Version using internal parser logging.
+	 *
+	 * @return true if given str should be displayed.
+	 */
+	private static boolean check_last_trace( int level, String str ) {
+		//logger.info( "str: " + str + "; last_trace: " + last_trace );
+		//logger.info( "trace_count: " + trace_count );
+
+		if ( str.equals( last_trace ) ) {
+			trace_count += 1;
+			return false;
+		} else {
+			if ( trace_count > 0 ) {
+				out( level, "Last message repeated " + trace_count + " times.", true );
+			}
+			last_trace = str;
+			trace_count = 0;
+			return true;
+		}
+	}
+
+	private static void log( Priority level, String str ) {
+		if ( level.isGreaterOrEqual( getDebugLevel() ) ) {
+			if ( check_last_trace( level, str ) ) {
+				logger.log( level, str );
+			}
+		}
+	}
+
 	public static void trace  (int level, String str) { out( level  , str); }
-	public static void trace  (String str) { /* out( TRACE  , str); */ logger.debug( str); }
-	public static void info   (String str) { /* out( INFO   , str); */ logger.info(str); }
-	public static void warning(String str) { /* out( WARNING, str); */ logger.warn(str); }
-	public static void error  (String str) { /* out( ERROR  , str); */ logger.error( str); }
+	public static void trace  (String str) { log( Priority.DEBUG, str ); }
+	public static void info   (String str) { log( Priority.INFO , str); }
+	public static void warning(String str) { log( Priority.WARN, str); }
+	public static void error  (String str) { log( Priority.ERROR, str); }
 
 
 
