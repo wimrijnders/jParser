@@ -59,7 +59,7 @@ public class EBNFMain {
 		BasicParser parser = new EBNF( inFile );
 		//NOTE: Following is the ruby parser!!!!!
 		//BasicParser parser = new EBNFruby( inFile );
-		parser.setTraceLevel( 5); //Util.TRACE );
+		parser.setTraceLevel( Util.TRACE );
 		parser.setFirstTwoLines(true);
 		State state = parser.parse();
 

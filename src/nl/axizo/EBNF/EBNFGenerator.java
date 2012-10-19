@@ -536,7 +536,7 @@ public class EBNFGenerator extends Generator {
 		"				WS(state);\n" +
 		"\n" +
 		"				if ( !s( \"" + entry_label + "\", state ) ) {\n" +
-		"					state.setError( \"end of parsing\" );\n" +
+//		"					state.setError( \"end of parsing\" );\n" +
 		"					break;\n" +
 		"				}\n" +
 		"			}\n" +

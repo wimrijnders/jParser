@@ -104,7 +104,7 @@ public class State {
 	 */
 	public void setError(String method) {
 		// HACK: hasErrors checks if errpos and curpos are equal
-		// the -1 compensated for this.
+		// the -1 compensates for this.
 		errpos = getCurpos() -1;
 		errmethod = method;
 	}

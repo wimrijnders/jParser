@@ -18,7 +18,7 @@
 	<property name="lib" location="lib"/>
 	<property name="log4j" value="log4j-1.2.16.jar" />
 
-	<property name="testfile" value="${grammar}/ebnf.ebnf"/>
+	<property name="testfile" value="${grammar}/ebnf_test.ebnf"/>
 
 	<path id="lib.path">
 		<fileset dir="lib">
@@ -145,7 +145,7 @@
 		</javac>
 	</target>
 
-	<target name="test" depends="compile_test" >
+	<target name="test" depends="build, compile_test" >
 		<!-- And run the compiled result -->
 		<echo>Running test with input ${testfile}</echo>
 	  <timer name="test">
@@ -158,8 +158,8 @@
 			<!-- Enable following for profiling output - this is the jip profiler -->
 			<jvmarg value="-javaagent:${lib}/profile.jar" />
 			<!-- up-dir needed because we start in a subdir -->
-			<arg value="-p"/>
-			<arg value="nodes_test.txt"/>
+			<!-- arg value="-p"/>
+			<arg value="nodes_test.txt"/ -->
 			<arg value="${testfile}"/>
 			<classpath>
 				<path refid="lib.path"/>

@@ -265,7 +265,7 @@ public class Util {
 		} catch ( InvocationTargetException e ) {
 			if ( e.getCause() instanceof ParseException ) {
 				if ( doThrow ) {
-					//info("method: " + method  + "threw ParseException.");
+					//info("method: " + method  + " threw ParseException.");
 					oldState.setError( state, method );
 					//throw (ParseException) e.getCause();
 					ParseException pe = new ParseException();

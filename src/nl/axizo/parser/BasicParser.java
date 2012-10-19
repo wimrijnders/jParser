@@ -289,7 +289,7 @@ public class BasicParser {
 					out = "Error in label '" + state.getErrorMethod() + "' at: " + 
 						curLine( state.getErrorPos() );
 				} else {
-					out = "Parsing failed";
+					out = "Parsing failed at position " + state.getCurpos() + " :" + curLine( state.getCurpos() );
 				}
 				error ( out );
 			}
