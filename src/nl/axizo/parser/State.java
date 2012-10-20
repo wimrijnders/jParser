@@ -108,7 +108,7 @@ public class State {
 		// passed state (if present).
 		if ( store ) {
 			Util.info( "Storing error for label '" + method + "'." );
-			error_list.add( new ErrorNode( errpos, errmethod ) );
+			error_list.add( new ErrorNode( errpos, method ) );
 		}
 		
 		// Keep hold of state with error, so that we can generate
