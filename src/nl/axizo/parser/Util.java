@@ -37,6 +37,33 @@ public class Util {
 
 	private static Logger logger = org.apache.log4j.Logger.getLogger(Util.class);
 
+
+	//////////////////////////////////////////////
+	// Flag definitions for dynamic calls 
+	//////////////////////////////////////////////
+
+
+	 /** If flag set, throw a ParseException if parsing fails. */
+	public static final int DO_THROW  = 1;
+	 /** If set, do not save parsed content to parse tree.  */
+	public static final int DO_IGNORE = 4;
+	public static final int DO_RAISE  = 2;
+
+	static boolean do_throw( int flags) { return (flags & DO_THROW) > 0; }
+	static boolean do_raise( int flags) { return (flags & DO_RAISE) > 0; }
+	static boolean do_ignore(int flags) { return (flags & DO_IGNORE) > 0; }
+
+	//////////////////////////////////////////////
+	// Class variables 
+	//////////////////////////////////////////////
+
+	// TODO: Check if following gives reentrancy problems
+	private static Map declaredMethods = new Hashtable(); 
+
+	//////////////////////////////////////////////
+	// Definitions for logging. 
+	//////////////////////////////////////////////
+
 	public static final int TRACE   = 10;
 	public static final int INFO    = 20;
 	public static final int WARNING = 30;
@@ -44,9 +71,6 @@ public class Util {
 
 	private static int     traceLevel     = INFO;
 	private static boolean showDoneOutput    = false;
-
-	// TODO: Check if following gives reentrancy problems
-	private static Map declaredMethods = new Hashtable(); 
 
 	//////////////////////////////////////////////
 	// Methods for generating tracing output
@@ -237,15 +261,13 @@ public class Util {
  	 * @param caller object on which to dynamically call method
 	 * @param method   Name of method to call
 	 * @param oldState Parse state of the calling method
-	 * @param doThrow  If true, throw a ParseException if parsing fails. Default is false.
-	 * @param ignore   If true, do not save parsed content to parse tree. Default is false.
+	 * @param flags Flags indicating special handling per dynamic call. 
 	 */
 	static boolean s( 
 		Object caller, 
 		String method, 
-		State oldState, 
-		boolean doThrow, 
-		boolean ignore 
+		State oldState,
+		int flags
 	) throws ParseException {
 
 		// TODO: Handle NoSuchMethodException and IllegalAccessException properly
@@ -257,16 +279,16 @@ public class Util {
 			ret = dynamicCall( caller, method, state);
 
 			if ( ret ) {
-				oldState.success( state, ignore );
+				oldState.success( state, do_ignore(flags) );
 				if ( showDoneOutput ) {
 					info( "Done" + Util.makeTab( state.getDepth(), " ") + method );
 				}
 			}
 		} catch ( InvocationTargetException e ) {
 			if ( e.getCause() instanceof ParseException ) {
-				if ( doThrow ) {
+				if ( do_throw(flags) ) {
 					//info("method: " + method  + " threw ParseException.");
-					oldState.setError( state, method );
+					oldState.setError( state, method, do_raise(flags) );
 					//throw (ParseException) e.getCause();
 					ParseException pe = new ParseException();
 					pe.setMethod( method );
@@ -285,8 +307,8 @@ public class Util {
 		}
 
 		if ( !ret ) {
-			oldState.setError( state, method );
-			if ( doThrow ) { 
+			oldState.setError( state, method, do_raise(flags) );
+			if ( do_throw( flags ) ) { 
 				//info("Error in method: " + method  + "throwing ParseException.");
 				ParseException pe = new ParseException();
 				pe.setMethod( method );
@@ -341,4 +363,31 @@ public class Util {
     	throwable.printStackTrace(printWriter);
     	return result.toString();
    	}
+
+
+	/**
+	 * Return the line in the buffer starting at given position, and also 
+	 * the entire next line.
+	 */
+	public static String curLine(String buffer, int curpos ) {
+		String ret = "";
+
+		// Find second EOL starting from curPos
+		int eolIndex = buffer.indexOf( "\n", curpos);
+
+		if ( eolIndex != -1 ) {
+			int tempIndex = buffer.indexOf( "\n", eolIndex + 1);
+ 	
+			if ( tempIndex != -1 ) eolIndex = tempIndex;
+		}
+
+		// If no index found, assume that we are at the end of the buffer
+		if ( eolIndex == -1 ) {
+			ret = buffer.substring( curpos);
+		} else {
+			ret = buffer.substring( curpos, eolIndex);
+		}
+
+		return ret;
+	}
 }

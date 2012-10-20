@@ -22,7 +22,17 @@
  */
 package nl.axizo.parser;
 
+import java.util.Vector;
+
 public class State {
+
+	class ErrorNode {
+		int pos;
+		String method;
+
+		ErrorNode(int pos, String method) { this.pos = pos; this.method = method; }
+	}
+
 	private int     depth       = 0;
 	private int     curpos      = 0;
 	private int     errpos      = -1;
@@ -31,6 +41,8 @@ public class State {
 	private Node    curNode;
 	private boolean skipCurrent = false;
 	private boolean ignoreCurrent = false;
+
+	private static Vector<ErrorNode> error_list = new Vector<ErrorNode>();
 
 	public State() {
 		curNode = new Node();
@@ -71,6 +83,11 @@ public class State {
 	}
 
 
+	public void setError( State state, String method ) {
+		setError( state, method, false);
+	}
+
+
 	/**
  	 * Flag an error situation.
  	 *
@@ -78,13 +95,20 @@ public class State {
  	 * copy that, otherwise use the current position within the
  	 * parsed data and the passed method to set the error.
  	 */
-	public void setError( State state, String method ) {
+	public void setError( State state, String method, boolean store ) {
 		if ( state.getErrorPos() != -1 ) {
-			errpos = state.getErrorPos();
-			errmethod = state.getErrorMethod();
+			errpos     = state.getErrorPos();
+			errmethod  = state.getErrorMethod();
 		} else {
-			errpos = state.getCurpos();
+			errpos    = state.getCurpos();
 			errmethod = method;
+		}
+
+		// Note that current error is stored, not the one from the 
+		// passed state (if present).
+		if ( store ) {
+			Util.info( "Storing error for label '" + method + "'." );
+			error_list.add( new ErrorNode( errpos, errmethod ) );
 		}
 		
 		// Keep hold of state with error, so that we can generate
@@ -108,6 +132,7 @@ public class State {
 		errpos = getCurpos() -1;
 		errmethod = method;
 	}
+
 
 	public int    getCurpos()      { return curpos; }
 	public Node   getCurNode()     { return curNode; }
@@ -157,5 +182,32 @@ public class State {
 		}
 
 		return retval;
+	}
+
+
+	/**
+	 * Retrieve a textual output of all stored errors
+	 */
+	public String getStoredErrors(String buffer) {
+		// Don't bother if parsing was completely successful,
+		// or no stored errors present.
+		if ( !hasErrors()  ) {
+			Util.info("Skipping stored errors.");
+			return "";
+		}
+		if ( error_list.size() == 0 ) {
+			Util.info("No stored errors present.");
+			return "";
+		}
+
+		String out = "";
+
+		for( ErrorNode node: error_list ) {
+
+			out = "Error in label '" + node.method
+				+ "' at: " + Util.curLine(buffer, node.pos ) + "\n";
+		}
+
+		return out;
 	}
 }

@@ -112,25 +112,7 @@ public class BasicParser {
 	 * the entire next line.
 	 */
 	public String curLine(int curpos) {
-		String ret = "";
-
-		// Find second EOL starting from curPos
-		int eolIndex = buffer.indexOf( "\n", curpos);
-
-		if ( eolIndex != -1 ) {
-			int tempIndex = buffer.indexOf( "\n", eolIndex + 1);
- 	
-			if ( tempIndex != -1 ) eolIndex = tempIndex;
-		}
-
-		// If no index found, assume that we are at the end of the buffer
-		if ( eolIndex == -1 ) {
-			ret = buffer.substring( curpos);
-		} else {
-			ret = buffer.substring( curpos, eolIndex);
-		}
-
-		return ret;
+		return Util.curLine(buffer, curpos);
 	}
 
 	protected static void trace  (int level, String str) { Util.trace( level  , str); }
@@ -159,7 +141,26 @@ public class BasicParser {
 		boolean doThrow,
 		boolean ignore
 	) throws ParseException {
-		return Util.s( this, method, oldState, doThrow, ignore );
+		int flags = 0;
+
+		if ( doThrow ) flags += Util.DO_THROW;
+		if ( ignore  ) flags += Util.DO_IGNORE;
+
+		return Util.s( this, method, oldState, flags );
+	}
+
+
+	protected boolean s(
+		String method,
+		State oldState,
+		int flags,
+		boolean ignore
+	) throws ParseException {
+		info("Called new s()");
+
+		if ( ignore  ) flags += Util.DO_IGNORE;
+
+		return Util.s( this, method, oldState, flags );
 	}
 
 
@@ -170,7 +171,7 @@ public class BasicParser {
  	 * addition of parsed values to parse tree. 
  	 */
 	protected boolean s( String method, State oldState, boolean doThrow ) throws ParseException {
-		return Util.s( this, method, oldState, doThrow, false ); 
+		return s( method, oldState, doThrow, false ); 
 	}
 
 
@@ -181,29 +182,14 @@ public class BasicParser {
  	 * throwing on error disabled and
  	 * addition of parsed values to parse tree. 
  	 */
-	protected boolean s( String method, State oldState ) throws
-			ParseException//, 
-			//NoSuchMethodException, 
-			//IllegalAccessException 
-	{
-		return Util.s( this, method, oldState, false, false ); 
+	protected boolean s( String method, State oldState ) throws ParseException {
+		return s( method, oldState, false, false ); 
 	}
 
 
 	protected boolean parseString( String str, State state, boolean doThrow, boolean ignore )
 			throws ParseException {
 
-/* WRI: NOT NEEDED. regionMatches handles this case fine
- 
-		// Special case end of file handling.
-		// If string to test goes past buffer, there can never be a match
-		if ( state.getCurpos() + str.length() > buffer.length() ) {
-			if ( doThrow ) throw new ParseException();
-			return false;
-		}
-*/
-		//String curStr = buffer.substring( state.getCurpos(), state.getCurpos() + str.length() );
-		//if ( curStr.equals( str ) ) {
 		if ( buffer.regionMatches( state.getCurpos(), str, 0, str.length() ) ) {
 			state.matched( str, "string", ignore );
 			return true;
@@ -286,13 +272,21 @@ public class BasicParser {
 				info( out );
 			} else { 
 				if ( state.getErrorPos() != -1 ) {
-					out = "Error in label '" + state.getErrorMethod() + "' at: " + 
-						curLine( state.getErrorPos() );
+					out = "Error in label '" + state.getErrorMethod()
+						+ "' at: " + curLine( state.getErrorPos() );
 				} else {
-					out = "Parsing failed at position " + state.getCurpos() + " :" + curLine( state.getCurpos() );
+					out = "Parsing failed at position " + state.getCurpos()
+						+ " :" + curLine( state.getCurpos() );
 				}
+
+				String tmp = state.getStoredErrors( buffer );
+				if ( tmp.length() != 0 ) {
+					out += "\n\nPossible Reasons for error:\n" + tmp;
+				}
+
 				error ( out );
 			}
+
 			trace( "curpos: " + curLine( state.getCurpos() ) );
 		} catch ( ParseException e ) {
 			out =  "Exception: " + e.toString();

@@ -229,11 +229,20 @@ public class EBNFGenerator extends Generator {
 					mustReturn = Boolean.getBoolean( param1.getValue() );
 				}
 
-				if ( !raise.isNull() ) throwParams += "," + raise.getValue();
-				else throwParams += ", false";
+
+				if ( !raise.isNull() && "true".equals( raise.getValue() ) ) {
+					throwParams += ", Util.DO_RAISE";
+				} else {
+					throwParams += ", false";
+				}
 
 				//Param2 gets appended
-				if ( !param2.isNull() ) throwParams += "," + param2.getValue();
+				if ( !param2.isNull() ) { 
+					throwParams += "," + param2.getValue();
+				} else {
+					throwParams += ", false";
+				}
+	
 
 				if ( !( param1.isNull() || param2.isNull() ) ) {
 					Util.info("Detected parameters '" + throwParams 
